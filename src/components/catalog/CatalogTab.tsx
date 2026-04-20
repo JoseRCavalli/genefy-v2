@@ -39,6 +39,7 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
   const [tankOnly, setTankOnly] = useState(false);
   const [a2a2Only, setA2a2Only] = useState(false);
   const [hhFreeOnly, setHhFreeOnly] = useState(false);
+  const [catalogFilter, setCatalogFilter] = useState('');
   const [expandedCode, setExpandedCode] = useState<string | null>(null);
   const [editingPrice, setEditingPrice] = useState<string | null>(null);
   const [priceValue, setPriceValue] = useState('');
@@ -49,6 +50,12 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
 
   const tankCodes = new Set(tankBulls.map(b => b.code));
 
+  const catalogOptions = useMemo(() => {
+    const seen = new Set<string>();
+    allBulls.forEach(b => { if (b.catalog) seen.add(b.catalog); });
+    return Array.from(seen).sort();
+  }, [allBulls]);
+
   const filtered = useMemo(() => {
     return allBulls.filter(b => {
       if (search && !b.code.toLowerCase().includes(search.toLowerCase()) &&
@@ -57,9 +64,10 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
       if (tankOnly && !tankCodes.has(b.code)) return false;
       if (a2a2Only && b.beta_casein !== 'A2A2') return false;
       if (hhFreeOnly && getCarrierHaplotypes(b).length > 0) return false;
+      if (catalogFilter && (b.catalog ?? 'CDCB') !== catalogFilter) return false;
       return true;
     });
-  }, [allBulls, search, tankOnly, a2a2Only, hhFreeOnly, tankCodes]);
+  }, [allBulls, search, tankOnly, a2a2Only, hhFreeOnly, catalogFilter, tankCodes]);
 
   function setField(key: FormKey, value: string) {
     setForm(f => ({ ...f, [key]: value }));
@@ -117,6 +125,7 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
       hh5: form.hh5 || 'Free',
       hh6: form.hh6 || 'Free',
       price_per_dose: numOrNull(form.price_per_dose),
+      catalog: null,
       is_custom: true,
       source: 'MANUAL',
     });
@@ -159,6 +168,14 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
             {f.label}
           </label>
         ))}
+        <select
+          value={catalogFilter}
+          onChange={e => setCatalogFilter(e.target.value)}
+          className="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
+        >
+          <option value="">Todos os catálogos</option>
+          {catalogOptions.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
         <span className="text-xs text-gray-400 ml-auto">{filtered.length} touros</span>
       </div>
 
@@ -237,7 +254,7 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
                     </td>
                     <td className="px-3 py-2 text-center">
                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${isCustom ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
-                        {isCustom ? 'MANUAL' : 'CDCB'}
+                        {isCustom ? 'MANUAL' : (bull.catalog ?? 'CDCB')}
                       </span>
                     </td>
                   </tr>

@@ -28,12 +28,20 @@ export function MatchingTab({
   farmId, bullRows, femaleRows,
 }: Props) {
   const [saved, setSaved] = useState<string[]>([]);
+  const [catalogFilter, setCatalogFilter] = useState('');
+
+  const catalogOptions = useMemo(() => {
+    const seen = new Set<string>();
+    allBulls.forEach(b => { if (b.catalog) seen.add(b.catalog); });
+    return Array.from(seen).sort();
+  }, [allBulls]);
 
   const options = useMemo((): MatchOption[] => {
     if (!female) return [];
-    const bulls = tankOnly ? tankBulls : allBulls;
+    const base = tankOnly ? tankBulls : allBulls;
+    const bulls = catalogFilter ? base.filter(b => (b.catalog ?? 'CDCB') === catalogFilter) : base;
     return getTop3Options(female, bulls, weights, maxInb, a2a2Only, useRel);
-  }, [female, allBulls, tankBulls, weights, maxInb, a2a2Only, tankOnly, useRel]);
+  }, [female, allBulls, tankBulls, weights, maxInb, a2a2Only, tankOnly, useRel, catalogFilter]);
 
   async function handleSave(opt: MatchOption, rank: number, isSexed: boolean) {
     if (!female) return;
@@ -78,9 +86,19 @@ export function MatchingTab({
 
   return (
     <div className="p-6 space-y-4 max-w-2xl mx-auto">
-      <h2 className="text-lg font-bold text-blue-dark">
-        Matching — <span className="text-blue-mid">{female.id}</span>
-      </h2>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-lg font-bold text-blue-dark">
+          Matching — <span className="text-blue-mid">{female.id}</span>
+        </h2>
+        <select
+          value={catalogFilter}
+          onChange={e => setCatalogFilter(e.target.value)}
+          className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        >
+          <option value="">Todos os catálogos</option>
+          {catalogOptions.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
       {options.length === 0 && (
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
           Nenhum touro encontrado com os filtros atuais. Tente reduzir a consanguinidade máxima ou desabilitar outros filtros.

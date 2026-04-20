@@ -34,5 +34,5 @@ export function useWeights(farmId: string | null | undefined) {
     return error;
   }
 
-  return { weights, setWeights, presets, activePreset, applyPreset, savePreset };
+  return { weights, setWeights, presets, activePreset, setActivePreset, applyPreset, savePreset };
 }

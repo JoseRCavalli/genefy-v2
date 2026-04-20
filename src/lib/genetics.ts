@@ -52,6 +52,7 @@ export interface Bull {
   _custom?: boolean;
   // Nova propriedade para v2
   price_per_dose?: number | null;
+  catalog?: string | null;
   // Index signature para acesso dinâmico em genetics.ts
   [key: string]: unknown;
 }

@@ -3,6 +3,7 @@ import { Header } from '../components/layout/Header';
 import { Sidebar } from '../components/layout/Sidebar';
 import { MatchingTab } from '../components/matching/MatchingTab';
 import { MatingPlanTab } from '../components/mating-plan/MatingPlanTab';
+import { FullAnalysisTab } from '../components/full-analysis/FullAnalysisTab';
 import { PrimiparousTab } from '../components/primiparous/PrimiparousTab';
 import { CatalogTab } from '../components/catalog/CatalogTab';
 import { HerdTab } from '../components/herd/HerdTab';
@@ -36,9 +37,14 @@ function DemoApp() {
   const { bulls, bullRows, addCustomBull, updateBullPrice } = useDemoBulls();
   const { females, femaleRows, reload: reloadFemales, upsertFemale, setPrimiparous, deleteFemale } = useDemoFemales();
   const { tank, tankBulls, addToTank, removeFromTank, updateTankEntry } = useDemoTank(bulls);
-  const { weights, setWeights, presets, activePreset, applyPreset, savePreset } = useDemoWeights();
+  const { weights, setWeights, presets, activePreset, setActivePreset, applyPreset, savePreset } = useDemoWeights();
 
   const farm = DEMO_FARM;
+
+  function handleApplyPreset(name: string) {
+    if (name === 'Personalizado') { setActivePreset('Personalizado'); return; }
+    applyPreset(name);
+  }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
@@ -65,7 +71,7 @@ function DemoApp() {
           weights={weights}
           onWeightsChange={setWeights}
           activePreset={activePreset}
-          onApplyPreset={applyPreset}
+          onApplyPreset={handleApplyPreset}
           onSavePreset={savePreset}
           customPresets={presets}
           maxInb={maxInb}
@@ -108,6 +114,20 @@ function DemoApp() {
               farmName={farm.name}
               bullRows={bullRows}
               femaleRows={femaleRows}
+            />
+          )}
+          {activeTab === 'full-analysis' && (
+            <FullAnalysisTab
+              females={females}
+              allBulls={bulls}
+              tankBulls={tankBulls}
+              tank={tank}
+              weights={weights}
+              maxInb={maxInb}
+              a2a2Only={a2a2Only}
+              useRel={useRel}
+              farmId={farm.id}
+              bullRows={bullRows}
             />
           )}
           {activeTab === 'primiparous' && (
@@ -185,7 +205,12 @@ function SupabaseApp() {
   const { bulls, bullRows, addCustomBull, updateBullPrice } = useBulls(farm?.id);
   const { females, femaleRows, reload: reloadFemales, upsertFemale, setPrimiparous, deleteFemale } = useFemales(farm?.id);
   const { tank, tankBulls, addToTank, removeFromTank, updateTankEntry } = useTank(farm?.id, bulls);
-  const { weights, setWeights, presets, activePreset, applyPreset, savePreset } = useWeights(farm?.id);
+  const { weights, setWeights, presets, activePreset, setActivePreset, applyPreset, savePreset } = useWeights(farm?.id);
+
+  function handleApplyPreset(name: string) {
+    if (name === 'Personalizado') { setActivePreset('Personalizado'); return; }
+    applyPreset(name);
+  }
 
   if (farmLoading) {
     return (
@@ -224,7 +249,7 @@ function SupabaseApp() {
           weights={weights}
           onWeightsChange={setWeights}
           activePreset={activePreset}
-          onApplyPreset={applyPreset}
+          onApplyPreset={handleApplyPreset}
           onSavePreset={savePreset}
           customPresets={presets}
           maxInb={maxInb}
@@ -266,6 +291,20 @@ function SupabaseApp() {
               farmName={farm.name}
               bullRows={bullRows}
               femaleRows={femaleRows}
+            />
+          )}
+          {activeTab === 'full-analysis' && (
+            <FullAnalysisTab
+              females={females}
+              allBulls={bulls}
+              tankBulls={tankBulls}
+              tank={tank}
+              weights={weights}
+              maxInb={maxInb}
+              a2a2Only={a2a2Only}
+              useRel={useRel}
+              farmId={farm.id}
+              bullRows={bullRows}
             />
           )}
           {activeTab === 'primiparous' && (

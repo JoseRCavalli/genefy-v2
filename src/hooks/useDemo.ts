@@ -5,6 +5,7 @@
 import { useState, useCallback } from 'react';
 import { BASE_BULLS, BASE_FEMALES } from '../lib/data';
 import { PRESETS } from '../lib/genetics';
+import { getBrandFromCode } from '../lib/naab-brands';
 import type { Bull, Female, WeightMap } from '../lib/genetics';
 import type { FarmRow, FemaleRow, BullRow } from '../lib/supabase';
 import type { TankEntry } from './useTank';
@@ -69,6 +70,7 @@ export function useDemoBulls() {
     hh5: (b.HH5 as string) || 'Free',
     hh6: (b.HH6 as string) || 'Free',
     price_per_dose: b.price_per_dose ?? null,
+    catalog: (b as { catalog?: string | null }).catalog ?? getBrandFromCode(b.code),
     is_custom: b._custom ?? false,
     source: b._custom ? 'MANUAL' : 'CDCB',
     created_at: new Date().toISOString(),
@@ -292,7 +294,7 @@ export function useDemoWeights() {
     return Promise.resolve(null);
   }
 
-  return { weights, setWeights, presets: [], activePreset, applyPreset, savePreset };
+  return { weights, setWeights, presets: [], activePreset, setActivePreset, applyPreset, savePreset };
 }
 
 export { DEMO_FARM };

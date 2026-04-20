@@ -1,9 +1,18 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase, BullRow } from '../lib/supabase';
 import { BASE_BULLS } from '../lib/data';
+import { CATALOG_BULLS } from '../lib/catalog-bulls';
+import { getBrandFromCode } from '../lib/naab-brands';
 import type { Bull } from '../lib/genetics';
 
-/** Maps a DB BullRow → genetics.ts Bull shape */
+const ALL_BASE_BULLS: Bull[] = [
+  ...(BASE_BULLS as Bull[]).map(b => ({
+    ...b,
+    catalog: b.catalog ?? getBrandFromCode(b.code),
+  })),
+  ...CATALOG_BULLS,
+];
+
 function rowToBull(r: BullRow): Bull {
   return {
     code: r.code,
@@ -38,28 +47,40 @@ function rowToBull(r: BullRow): Bull {
     HH6: r.hh6,
     reliability: r.reliability,
     price_per_dose: r.price_per_dose,
+    catalog: r.catalog ?? getBrandFromCode(r.code),
     _custom: r.is_custom,
   };
 }
 
 export function useBulls(farmId: string | null | undefined) {
-  const [bulls, setBulls] = useState<Bull[]>(BASE_BULLS as Bull[]);
+  const [bulls, setBulls] = useState<Bull[]>(ALL_BASE_BULLS);
   const [bullRows, setBullRows] = useState<BullRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   const reload = useCallback(async () => {
     if (!farmId) return;
     setLoading(true);
-    // Load custom bulls for this farm from Supabase
-    const { data } = await supabase
-      .from('bulls')
-      .select('*')
-      .eq('farm_id', farmId)
-      .eq('is_custom', true);
 
-    const custom: Bull[] = (data ?? []).map(rowToBull);
-    setBullRows(data ?? []);
-    setBulls([...(BASE_BULLS as Bull[]), ...custom]);
+    // Paginate custom bulls (handles farms with many custom entries)
+    const PAGE = 1000;
+    let allRows: BullRow[] = [];
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from('bulls')
+        .select('*')
+        .eq('farm_id', farmId)
+        .eq('is_custom', true)
+        .range(from, from + PAGE - 1);
+      if (error || !data?.length) break;
+      allRows = [...allRows, ...data];
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+
+    const custom: Bull[] = allRows.map(rowToBull);
+    setBullRows(allRows);
+    setBulls([...ALL_BASE_BULLS, ...custom]);
     setLoading(false);
   }, [farmId]);
 

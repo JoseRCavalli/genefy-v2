@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-  Search, Plus, Trash2, ChevronDown, ChevronUp, Sliders, FlaskConical,
+  Search, Plus, Trash2, ChevronDown, ChevronUp, Sliders, FlaskConical, SlidersHorizontal,
 } from 'lucide-react';
 import type { Bull, Female, WeightMap } from '../../lib/matching';
 import type { TankEntry } from '../../hooks/useTank';
 import { PRESETS, fmt, inbClass } from '../../lib/matching';
+import { ALL_CATALOGS } from '../../lib/naab-brands';
 
 interface Props {
   females: Female[];
@@ -24,7 +25,6 @@ interface Props {
   onApplyPreset: (name: string) => void;
   onSavePreset: (name: string) => Promise<unknown>;
   customPresets: { id: string; name: string }[];
-  // filter state
   maxInb: number;
   onMaxInbChange: (v: number) => void;
   a2a2Only: boolean;
@@ -50,6 +50,8 @@ const WEIGHT_KEYS: { key: keyof WeightMap; label: string }[] = [
   { key: 'feed_saved', label: 'Feed Saved' },
 ];
 
+const CUSTOM_PRESET = 'Personalizado';
+
 export function Sidebar({
   females, selectedFemale, onSelectFemale,
   allBulls, tank, tankBulls, farmId,
@@ -64,6 +66,7 @@ export function Sidebar({
   const [showBullDropdown, setShowBullDropdown] = useState(false);
   const [showWeights, setShowWeights] = useState(false);
   const [presetName, setPresetName] = useState('');
+  const [catalogFilter, setCatalogFilter] = useState('');
   const femaleRef = useRef<HTMLDivElement>(null);
   const bullRef = useRef<HTMLDivElement>(null);
 
@@ -83,7 +86,8 @@ export function Sidebar({
   const filteredBulls = allBulls.filter(b =>
     (b.code.toLowerCase().includes(bullSearch.toLowerCase()) ||
       (b.name ?? '').toLowerCase().includes(bullSearch.toLowerCase())) &&
-    !tankBulls.some(t => t.code === b.code)
+    !tankBulls.some(t => t.code === b.code) &&
+    (!catalogFilter || b.catalog === catalogFilter)
   ).slice(0, 30);
 
   async function handleAddBull(bull: Bull) {
@@ -94,10 +98,33 @@ export function Sidebar({
     await onAddToTank(dbRow.id);
   }
 
+  function handleSliderChange(key: keyof WeightMap, value: number) {
+    onWeightsChange({ ...weights, [key]: value });
+    if (activePreset !== CUSTOM_PRESET) onApplyPreset(CUSTOM_PRESET);
+  }
+
+  function normalizeWeights() {
+    const total = Object.values(weights).reduce((s: number, v) => s + (v ?? 0), 0);
+    if (!total) return;
+    const normalized: WeightMap = {};
+    for (const [k, v] of Object.entries(weights)) {
+      normalized[k as keyof WeightMap] = Math.round(((v ?? 0) / total) * 100);
+    }
+    onWeightsChange(normalized);
+    onApplyPreset(CUSTOM_PRESET);
+  }
+
+  const totalWeight: number = Object.values(weights).reduce((s: number, v) => s + (v ?? 0), 0);
+
   const allPresets = [
+    CUSTOM_PRESET,
     ...Object.keys(PRESETS),
     ...customPresets.map(p => p.name),
   ];
+
+  const catalogOptions = ALL_CATALOGS.filter(c =>
+    allBulls.some(b => (b.catalog ?? 'CDCB') === c)
+  );
 
   return (
     <aside className="w-72 shrink-0 bg-white border-r border-gray-200 overflow-y-auto flex flex-col gap-0">
@@ -160,6 +187,18 @@ export function Sidebar({
         <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
           Botijão ({tank.length} touros)
         </h3>
+
+        {/* Filtro por catálogo no botijão */}
+        <select
+          value={catalogFilter}
+          onChange={e => setCatalogFilter(e.target.value)}
+          className="w-full mb-2 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none"
+        >
+          <option value="">Todos os catálogos</option>
+          {catalogOptions.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
 
         <div className="relative mb-2" ref={bullRef}>
           <div className="relative">
@@ -268,12 +307,13 @@ export function Sidebar({
             <button
               key={name}
               onClick={() => onApplyPreset(name)}
-              className={`px-2 py-0.5 rounded text-xs border transition-colors ${
+              className={`px-2 py-0.5 rounded text-xs border transition-colors flex items-center gap-1 ${
                 activePreset === name
                   ? 'bg-blue-mid text-white border-blue-mid'
                   : 'bg-white text-gray-600 border-gray-300 hover:border-blue-mid'
               }`}
             >
+              {name === CUSTOM_PRESET && <SlidersHorizontal size={10} />}
               {name}
             </button>
           ))}
@@ -281,16 +321,48 @@ export function Sidebar({
 
         {showWeights && (
           <div className="space-y-2">
+            {/* Total display */}
+            <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+              <span>Total dos pesos: <b className="text-blue-mid">{totalWeight}</b></span>
+              <button
+                onClick={normalizeWeights}
+                className="px-2 py-0.5 text-xs border border-gray-300 rounded hover:border-blue-mid hover:text-blue-mid transition-colors"
+              >
+                Normalizar para 100
+              </button>
+            </div>
+
+            {/* Bar chart */}
+            {totalWeight > 0 && (
+              <div className="mb-2 space-y-0.5">
+                {WEIGHT_KEYS.filter(({ key }) => (weights[key] ?? 0) > 0).map(({ key, label }) => {
+                  const pct = Math.round(((weights[key] ?? 0) / totalWeight) * 100);
+                  return (
+                    <div key={key} className="flex items-center gap-1 text-[10px] text-gray-500">
+                      <span className="w-20 truncate text-right">{label}</span>
+                      <div className="flex-1 h-2 bg-gray-100 rounded overflow-hidden">
+                        <div
+                          className="h-full bg-blue-mid rounded transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="w-6 text-right">{pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {WEIGHT_KEYS.map(({ key, label }) => (
               <div key={key}>
                 <label className="flex justify-between text-xs text-gray-600 mb-0.5">
                   {label}
-                  <span className="font-medium text-blue-mid">{(weights[key] ?? 0).toFixed(2)}</span>
+                  <span className="font-medium text-blue-mid">{(weights[key] ?? 0).toFixed(0)}</span>
                 </label>
                 <input
-                  type="range" min={0} max={3} step={0.05}
+                  type="range" min={0} max={100} step={1}
                   value={weights[key] ?? 0}
-                  onChange={e => onWeightsChange({ ...weights, [key]: +e.target.value })}
+                  onChange={e => handleSliderChange(key, +e.target.value)}
                   className="w-full accent-blue-mid"
                 />
               </div>

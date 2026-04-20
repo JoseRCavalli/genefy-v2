@@ -13,6 +13,19 @@ interface Props {
 
 const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
+const CATALOG_TAG: Record<string, { label: string; cls: string }> = {
+  'Semex':                        { label: 'SEMEX',  cls: 'bg-sky-100 text-sky-700' },
+  'STgenetics':                   { label: 'ST',     cls: 'bg-orange-100 text-orange-700' },
+  'Alta Genetics':                { label: 'ALTA',   cls: 'bg-purple-100 text-purple-700' },
+  'ABS Global':                   { label: 'ABS',    cls: 'bg-green-100 text-green-700' },
+  'Genex':                        { label: 'GENEX',  cls: 'bg-rose-100 text-rose-700' },
+  'Select Sires':                 { label: 'SELECT', cls: 'bg-teal-100 text-teal-700' },
+  'GenerVation (Select Sires)':   { label: 'GENRV',  cls: 'bg-teal-50 text-teal-600' },
+  'Accelerated (Select Sires)':   { label: 'ACCEL',  cls: 'bg-cyan-100 text-cyan-700' },
+  'Accelerated Genetics':         { label: 'ACCEL',  cls: 'bg-indigo-100 text-indigo-700' },
+  'CDCB':                         { label: 'CDCB',   cls: 'bg-gray-100 text-gray-500' },
+};
+
 export function BullOptionCard({ result, rank, female, isEconomic, onSave }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -41,7 +54,14 @@ export function BullOptionCard({ result, rank, female, isEconomic, onSave }: Pro
           <div className="flex items-center gap-2">
             <span className="text-2xl">{MEDAL[rank]}</span>
             <div>
-              <div className="font-bold text-blue-dark">{bull.code}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-blue-dark">{bull.code}</span>
+                {bull.catalog && CATALOG_TAG[bull.catalog] && (
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide ${CATALOG_TAG[bull.catalog].cls}`}>
+                    {CATALOG_TAG[bull.catalog].label}
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-gray-500 truncate max-w-[160px]">{bull.name ?? bull.short_name}</div>
             </div>
           </div>

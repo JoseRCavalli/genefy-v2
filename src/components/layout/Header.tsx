@@ -10,6 +10,7 @@ interface Props {
 const TABS = [
   { id: 'matching', label: 'Matching Individual' },
   { id: 'mating-plan', label: 'Plano de Acasalamento' },
+  { id: 'full-analysis', label: 'Análise Completa' },
   { id: 'primiparous', label: 'Primíparas' },
   { id: 'catalog', label: 'Catálogo de Touros' },
   { id: 'females-catalog', label: 'Catálogo de Fêmeas' },
