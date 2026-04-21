@@ -21,7 +21,7 @@ export function rowToFemale(r: FemaleRow): Female {
     mgs_naab: r.mgs_naab ?? undefined,
     mmgs_naab: r.mmgs_naab ?? undefined,
     age: r.age ?? undefined,
-    // v2 extras stored as metadata
+    is_primiparous: r.is_primiparous,
   };
 }
 

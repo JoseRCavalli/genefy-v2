@@ -381,6 +381,14 @@ export function MatingPlanTab({
               {f.id}<button onClick={() => removeFemale(f.id)}><X size={10} /></button>
             </span>
           ))}
+          {selected.length > 0 && (
+            <button
+              onClick={() => { setSelected([]); setResults([]); setSaveMsg(''); }}
+              className="px-3 py-1.5 text-sm bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100"
+            >
+              ✕ Remover todas ({selected.length})
+            </button>
+          )}
         </div>
         <div className="relative" ref={dropRef}>
           <input value={search} onChange={e => { setSearch(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)}

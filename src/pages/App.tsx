@@ -143,6 +143,7 @@ function DemoApp() {
               farmId={farm.id}
               bullRows={bullRows}
               onReloadFemales={reloadFemales}
+              onTogglePrimiparous={setPrimiparous}
             />
           )}
           {activeTab === 'catalog' && (
@@ -330,6 +331,7 @@ function SupabaseApp() {
               farmId={farm.id}
               onUpdatePrice={updateBullPrice}
               onAddBull={addCustomBull}
+
             />
           )}
           {activeTab === 'females-catalog' && (

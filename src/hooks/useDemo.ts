@@ -3,7 +3,8 @@
  * No Supabase required.
  */
 import { useState, useCallback } from 'react';
-import { BASE_BULLS, BASE_FEMALES } from '../lib/data';
+import { BASE_FEMALES } from '../lib/data';
+import { CATALOG_BULLS } from '../lib/catalog-bulls';
 import { PRESETS } from '../lib/genetics';
 import { getBrandFromCode } from '../lib/naab-brands';
 import type { Bull, Female, WeightMap } from '../lib/genetics';
@@ -34,7 +35,7 @@ function lsSet(key: string, val: unknown) {
 // ── Bulls ────────────────────────────────────────────────────────────────────
 export function useDemoBulls() {
   const [customBulls, setCustomBulls] = useState<Bull[]>([]);
-  const bulls: Bull[] = [...(BASE_BULLS as Bull[]), ...customBulls];
+  const bulls: Bull[] = [...CATALOG_BULLS, ...customBulls];
 
   const bullRows: BullRow[] = bulls.map((b) => ({
     id: b.code,   // usar code como id para que useDemoTank receba o code diretamente

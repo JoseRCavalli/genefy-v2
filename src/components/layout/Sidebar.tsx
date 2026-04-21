@@ -73,7 +73,6 @@ export function Sidebar({
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (femaleRef.current && !femaleRef.current.contains(e.target as Node)) setShowFemaleList(false);
-      if (bullRef.current && !bullRef.current.contains(e.target as Node)) setShowBullDropdown(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -85,17 +84,16 @@ export function Sidebar({
 
   const filteredBulls = allBulls.filter(b =>
     (b.code.toLowerCase().includes(bullSearch.toLowerCase()) ||
-      (b.name ?? '').toLowerCase().includes(bullSearch.toLowerCase())) &&
+      (b.name ?? b.short_name ?? '').toLowerCase().includes(bullSearch.toLowerCase())) &&
     !tankBulls.some(t => t.code === b.code) &&
     (!catalogFilter || b.catalog === catalogFilter)
   ).slice(0, 30);
 
   async function handleAddBull(bull: Bull) {
-    const dbRow = bullRows.find(r => r.code === bull.code);
-    if (!dbRow) return;
+    const dbId = bullRows.find(r => r.code === bull.code)?.id ?? bull.code;
     setBullSearch('');
     setShowBullDropdown(false);
-    await onAddToTank(dbRow.id);
+    await onAddToTank(dbId);
   }
 
   function handleSliderChange(key: keyof WeightMap, value: number) {
@@ -208,6 +206,7 @@ export function Sidebar({
               onChange={e => { setBullSearch(e.target.value); setShowBullDropdown(true); }}
               onFocus={() => setShowBullDropdown(true)}
               placeholder="Adicionar touro…"
+              onBlur={() => setTimeout(() => setShowBullDropdown(false), 150)}
               className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-gold"
             />
           </div>
@@ -219,11 +218,11 @@ export function Sidebar({
               {filteredBulls.map(b => (
                 <li
                   key={b.code}
-                  onClick={() => handleAddBull(b)}
+                  onMouseDown={(e) => { e.preventDefault(); handleAddBull(b); }}
                   className="px-3 py-1.5 cursor-pointer hover:bg-amber-50 flex justify-between"
                 >
                   <span className="font-medium">{b.code}</span>
-                  <span className="text-gray-500">{b.name}</span>
+                  <span className="text-gray-500">{b.name ?? b.short_name}</span>
                 </li>
               ))}
             </ul>

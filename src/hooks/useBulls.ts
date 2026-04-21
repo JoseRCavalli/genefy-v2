@@ -1,17 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase, BullRow } from '../lib/supabase';
-import { BASE_BULLS } from '../lib/data';
 import { CATALOG_BULLS } from '../lib/catalog-bulls';
 import { getBrandFromCode } from '../lib/naab-brands';
 import type { Bull } from '../lib/genetics';
 
-const ALL_BASE_BULLS: Bull[] = [
-  ...(BASE_BULLS as Bull[]).map(b => ({
-    ...b,
-    catalog: b.catalog ?? getBrandFromCode(b.code),
-  })),
-  ...CATALOG_BULLS,
-];
+const ALL_BASE_BULLS: Bull[] = CATALOG_BULLS;
 
 function rowToBull(r: BullRow): Bull {
   return {
@@ -79,7 +72,49 @@ export function useBulls(farmId: string | null | undefined) {
     }
 
     const custom: Bull[] = allRows.map(rowToBull);
-    setBullRows(allRows);
+    // Include ALL_BASE_BULLS in bullRows with code as pseudo-ID so catalog bulls can be added to tank
+    const basePseudoRows: BullRow[] = ALL_BASE_BULLS
+      .filter(b => !allRows.some(r => r.code === b.code))
+      .map(b => ({
+        id: b.code,
+        farm_id: null,
+        code: b.code,
+        short_name: b.name ?? b.short_name ?? null,
+        full_name: b.full_name ?? null,
+        gtpi: b.gtpi ?? null,
+        net_merit: b.net_merit ?? null,
+        milk: b.milk ?? null,
+        protein: b.protein ?? null,
+        fat: b.fat ?? null,
+        productive_life: b.productive_life ?? null,
+        scs: b.scs ?? null,
+        dpr: b.dpr ?? null,
+        hcr: b.hcr ?? null,
+        ccr: b.ccr ?? null,
+        fertility_index: b.fertility_index ?? null,
+        ptat: b.ptat ?? null,
+        udc: b.udc ?? null,
+        flc: b.flc ?? null,
+        feed_saved: b.feed_saved ?? null,
+        gfi: b.gfi ?? null,
+        cow_livability: b.cow_livability ?? null,
+        sire_calving_ease: b.sire_calving_ease ?? null,
+        beta_casein: b.beta_casein ?? null,
+        kappa_casein: b.kappa_casein ?? null,
+        hh1: (b.HH1 as string) || 'Free',
+        hh2: (b.HH2 as string) || 'Free',
+        hh3: (b.HH3 as string) || 'Free',
+        hh4: (b.HH4 as string) || 'Free',
+        hh5: (b.HH5 as string) || 'Free',
+        hh6: (b.HH6 as string) || 'Free',
+        reliability: b.reliability ?? null,
+        price_per_dose: b.price_per_dose ?? null,
+        catalog: (b as { catalog?: string | null }).catalog ?? getBrandFromCode(b.code),
+        is_custom: false,
+        source: 'CDCB',
+        created_at: new Date().toISOString(),
+      }));
+    setBullRows([...basePseudoRows, ...allRows]);
     setBulls([...ALL_BASE_BULLS, ...custom]);
     setLoading(false);
   }, [farmId]);

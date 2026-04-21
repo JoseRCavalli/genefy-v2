@@ -60,6 +60,7 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
     return allBulls.filter(b => {
       if (search && !b.code.toLowerCase().includes(search.toLowerCase()) &&
         !(b.name ?? '').toLowerCase().includes(search.toLowerCase()) &&
+        !(b.short_name ?? '').toLowerCase().includes(search.toLowerCase()) &&
         !(b.full_name ?? '').toLowerCase().includes(search.toLowerCase())) return false;
       if (tankOnly && !tankCodes.has(b.code)) return false;
       if (a2a2Only && b.beta_casein !== 'A2A2') return false;
@@ -139,12 +140,14 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
     <div className="p-6 max-w-6xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-blue-dark">Catálogo de Touros</h2>
-        <button
-          onClick={() => { setShowModal(true); setForm({ ...EMPTY_FORM }); setFormError(''); }}
-          className="flex items-center gap-2 px-4 py-2 bg-[#C9A84C] text-white text-sm rounded-lg hover:opacity-90"
-        >
-          <Plus size={14} /> Adicionar Touro
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setShowModal(true); setForm({ ...EMPTY_FORM }); setFormError(''); }}
+            className="flex items-center gap-2 px-4 py-2 bg-[#C9A84C] text-white text-sm rounded-lg hover:opacity-90"
+          >
+            <Plus size={14} /> Adicionar Touro
+          </button>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -253,8 +256,12 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${isCustom ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
-                        {isCustom ? 'MANUAL' : (bull.catalog ?? 'CDCB')}
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        bull.catalog === 'Select Sires' ? 'bg-green-100 text-green-700' :
+                        isCustom && !bull.catalog ? 'bg-amber-100 text-amber-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {bull.catalog ?? (isCustom ? 'MANUAL' : 'CDCB')}
                       </span>
                     </td>
                   </tr>

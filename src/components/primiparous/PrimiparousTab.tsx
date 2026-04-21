@@ -20,12 +20,13 @@ interface Props {
   farmId: string;
   bullRows: BullRow[];
   onReloadFemales: () => void;
+  onTogglePrimiparous?: (rowId: string, value: boolean) => void;
 }
 
 export function PrimiparousTab({
   females, femaleRows, allBulls, tankBulls,
   weights, maxInb, a2a2Only, useRel,
-  farmId, bullRows, onReloadFemales,
+  farmId, bullRows, onReloadFemales, onTogglePrimiparous,
 }: Props) {
   const [sexedMap, setSexedMap] = useState<Record<string, boolean>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -42,8 +43,21 @@ export function PrimiparousTab({
   );
 
   async function togglePrimiparous(row: FemaleRow) {
-    await supabase.from('females').update({ is_primiparous: !row.is_primiparous }).eq('id', row.id);
-    onReloadFemales();
+    const newValue = !row.is_primiparous;
+    if (onTogglePrimiparous) {
+      onTogglePrimiparous(row.id, newValue);
+    } else {
+      const { error } = await supabase
+        .from('females')
+        .update({ is_primiparous: newValue })
+        .eq('farm_id', farmId)
+        .eq('id', row.id);
+      if (error) {
+        console.error('Erro ao salvar primípara:', error.message);
+        return;
+      }
+      onReloadFemales();
+    }
   }
 
   async function handleSaveMating(female: Female, result: MatchResult, rank: number, isSexed: boolean) {
@@ -96,12 +110,16 @@ export function PrimiparousTab({
                   <td className="px-4 py-1.5 text-center">{row.lact}</td>
                   <td className="px-4 py-1.5 text-center">{row.net_merit ?? '—'}</td>
                   <td className="px-4 py-1.5 text-center">
-                    <input
-                      type="checkbox"
-                      checked={row.is_primiparous}
-                      onChange={() => togglePrimiparous(row)}
-                      className="accent-purple-600 cursor-pointer"
-                    />
+                    <button
+                      onClick={() => togglePrimiparous(row)}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                        row.is_primiparous
+                          ? 'bg-purple-600 text-white hover:bg-purple-700'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {row.is_primiparous ? '★ Primípara' : 'Marcar'}
+                    </button>
                   </td>
                 </tr>
               ))}
