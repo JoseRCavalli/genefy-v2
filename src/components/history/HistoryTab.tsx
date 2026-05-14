@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { CheckCircle, Baby, XCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle, Baby, XCircle, RefreshCw, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { MatingRow } from '../../lib/supabase';
 
@@ -58,6 +58,14 @@ export function HistoryTab({ farmId, demoMode }: Props) {
   async function updateStatus(id: string, status: MatingStatus) {
     setUpdating(id);
     await supabase.from('matings').update({ status }).eq('id', id);
+    setUpdating(null);
+    load();
+  }
+
+  async function deleteMating(id: string) {
+    if (!confirm('Tem certeza que deseja deletar este acasalamento?')) return;
+    setUpdating(id);
+    await supabase.from('matings').delete().eq('id', id);
     setUpdating(null);
     load();
   }
@@ -194,6 +202,14 @@ export function HistoryTab({ farmId, demoMode }: Props) {
                           <XCircle size={14} />
                         </button>
                       )}
+                      <button
+                        onClick={() => deleteMating(m.id)}
+                        disabled={updating === m.id}
+                        title="Deletar"
+                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded ml-2"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>

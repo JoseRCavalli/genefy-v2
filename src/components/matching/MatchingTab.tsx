@@ -5,6 +5,7 @@ import { getTop3Options } from '../../lib/matching';
 import { supabase } from '../../lib/supabase';
 import { BullOptionCard } from './BullOptionCard';
 import type { BullRow, FemaleRow } from '../../lib/supabase';
+import { ensureBullInDb } from '../../hooks/useTank';
 
 type MatchOption = ReturnType<typeof getTop3Options>[number];
 
@@ -20,12 +21,13 @@ interface Props {
   farmId: string;
   bullRows: BullRow[];
   femaleRows: FemaleRow[];
+  onNavigate?: (tab: string) => void;
 }
 
 export function MatchingTab({
   female, allBulls, tankBulls, weights,
   maxInb, a2a2Only, tankOnly, useRel,
-  farmId, bullRows, femaleRows,
+  farmId, bullRows, femaleRows, onNavigate,
 }: Props) {
   const [saved, setSaved] = useState<string[]>([]);
   const [catalogFilter, setCatalogFilter] = useState('');
@@ -46,19 +48,26 @@ export function MatchingTab({
   async function handleSave(opt: MatchOption, rank: number, isSexed: boolean) {
     if (!female) return;
     const femaleRow = femaleRows.find(r => r.animal_id === female.id);
-    const bullRow = bullRows.find(r => r.code === opt.bull.code);
-    if (!femaleRow || !bullRow) { alert('Fêmea ou touro não encontrado no banco de dados.'); return; }
+    if (!femaleRow) { alert('Fêmea não encontrada no banco de dados.'); return; }
+    
+    // Obter ou criar o touro no banco para ter o UUID válido
+    const bullId = await ensureBullInDb(opt.bull.code, allBulls);
+    if (!bullId) { alert('Erro ao registrar touro no banco de dados.'); return; }
+
     const { error } = await supabase.from('matings').insert({
       farm_id: farmId,
       female_id: femaleRow.id,
-      bull_id: bullRow.id,
+      bull_id: bullId,
       option_rank: rank,
       score: opt.score,
       inbreeding_pct: opt.inbreeding,
       is_sexed_semen: isSexed,
       status: 'planned',
     });
-    if (!error) setSaved(v => [...v, `${female.id}-${rank}`]);
+    if (!error) {
+      setSaved(v => [...v, `${female.id}-${rank}`]);
+      if (onNavigate) onNavigate('history');
+    }
     else alert(`Erro ao salvar: ${error.message}`);
   }
 

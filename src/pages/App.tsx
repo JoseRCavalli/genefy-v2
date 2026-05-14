@@ -98,6 +98,7 @@ function DemoApp() {
               farmId={farm.id}
               bullRows={bullRows}
               femaleRows={femaleRows}
+              onNavigate={setActiveTab}
             />
           )}
           {activeTab === 'mating-plan' && (
@@ -114,6 +115,8 @@ function DemoApp() {
               farmName={farm.name}
               bullRows={bullRows}
               femaleRows={femaleRows}
+              onUpdateTank={updateTankEntry}
+              onNavigate={setActiveTab}
             />
           )}
           {activeTab === 'full-analysis' && (
@@ -276,6 +279,7 @@ function SupabaseApp() {
               farmId={farm.id}
               bullRows={bullRows}
               femaleRows={femaleRows}
+              onNavigate={setActiveTab}
             />
           )}
           {activeTab === 'mating-plan' && (
@@ -292,6 +296,8 @@ function SupabaseApp() {
               farmName={farm.name}
               bullRows={bullRows}
               femaleRows={femaleRows}
+              onUpdateTank={updateTankEntry}
+              onNavigate={setActiveTab}
             />
           )}
           {activeTab === 'full-analysis' && (

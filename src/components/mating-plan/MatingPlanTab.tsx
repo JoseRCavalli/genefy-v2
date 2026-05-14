@@ -8,6 +8,8 @@ import type { TankEntry } from '../../hooks/useTank';
 
 const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
+import { ensureBullInDb } from '../../hooks/useTank';
+
 interface Props {
   females: Female[];
   allBulls: Bull[];
@@ -21,6 +23,8 @@ interface Props {
   farmName?: string;
   bullRows: BullRow[];
   femaleRows: FemaleRow[];
+  onUpdateTank: (tankId: string, doses: number | null, price: number | null) => Promise<unknown>;
+  onNavigate?: (tab: string) => void;
 }
 
 // ── Gerador do relatório de impressão ─────────────────────────────────────────
@@ -264,14 +268,33 @@ function generatePrintReport(
 export function MatingPlanTab({
   females, allBulls, tankBulls, tank, weights,
   maxInb, useRel,
-  farmId, farmName = 'Granja Demo', bullRows, femaleRows,
+  farmId, farmName = 'Granja Demo', bullRows, femaleRows, onUpdateTank, onNavigate,
 }: Props) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Female[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [results, setResults] = useState<PlanResult[]>([]);
+  const [rawResults, setResults] = useState<PlanResult[]>([]);
+  const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+
+  const results = useMemo(() => {
+    return rawResults.map(r => {
+      const overrideCode = overrides[r.female.id];
+      if (overrideCode && overrideCode !== r.bull?.code) {
+        const selectedOpt = r.allOptions.find(o => o.bull.code === overrideCode);
+        if (selectedOpt) {
+          return {
+            ...r,
+            bull: selectedOpt.bull,
+            score: selectedOpt.score,
+            inbreeding: selectedOpt.inbreeding,
+          };
+        }
+      }
+      return r;
+    });
+  }, [rawResults, overrides]);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -298,8 +321,42 @@ export function MatingPlanTab({
     const tankMap = new Map<string, { doses: number | null }>(
       tank.map(e => [e.bull.code, { doses: e.doses }])
     );
+    setOverrides({});
     setResults(runMatingPlan(selected, tankMap, allBulls, weights, maxInb));
     setSaveMsg('');
+  }
+
+  // Auto-recalcular quando maxInb, pesos ou botijão mudam (só se já há resultados)
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const hasResultsRef = useRef(false);
+  hasResultsRef.current = rawResults.length > 0;
+
+  useEffect(() => {
+    if (!hasResultsRef.current || selectedRef.current.length === 0) return;
+    const tankMap = new Map<string, { doses: number | null }>(
+      tank.map(e => [e.bull.code, { doses: e.doses }])
+    );
+    setResults(runMatingPlan(selectedRef.current, tankMap, allBulls, weights, maxInb));
+    setSaveMsg('');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maxInb, weights, tank]);
+
+  /** Debita do botijão as doses usadas no plano atual */
+  async function deductDosesFromTank() {
+    // Contar quantas doses cada touro foi usado
+    const usedMap = new Map<string, number>();
+    for (const r of results) {
+      if (!r.bull) continue;
+      usedMap.set(r.bull.code, (usedMap.get(r.bull.code) ?? 0) + 1);
+    }
+    // Atualizar cada entrada do botijão
+    for (const entry of tank) {
+      const used = usedMap.get(entry.bull.code) ?? 0;
+      if (used === 0 || entry.doses === null) continue;
+      const remaining = Math.max(0, entry.doses - used);
+      await onUpdateTank(entry.tankId, remaining, entry.pricePerDose);
+    }
   }
 
   async function saveAll() {
@@ -317,8 +374,11 @@ export function MatingPlanTab({
         savedAt: new Date().toISOString(),
       }));
       localStorage.setItem(key, JSON.stringify(payload));
+      // Debitar doses do botijão
+      await deductDosesFromTank();
       setSaving(false);
-      setSaveMsg(`✅ ${payload.length} acasalamentos salvos localmente (demo). Chave: ${key}`);
+      setSaveMsg(`✅ ${payload.length} acasalamentos salvos (demo). Doses debitadas do botijão.`);
+      if (onNavigate) onNavigate('history');
       return;
     }
 
@@ -327,12 +387,15 @@ export function MatingPlanTab({
     for (const r of results) {
       if (!r.bull) continue;
       const femaleRow = femaleRows.find(fr => fr.animal_id === r.female.id);
-      const bullRow = bullRows.find(br => br.code === r.bull!.code);
-      if (!femaleRow || !bullRow) continue;
+      if (!femaleRow) continue;
+      
+      const bullId = await ensureBullInDb(r.bull.code, allBulls);
+      if (!bullId) continue;
+
       const { error } = await supabase.from('matings').insert({
         farm_id: farmId,
         female_id: femaleRow.id,
-        bull_id: bullRow.id,
+        bull_id: bullId,
         option_rank: 1,
         score: r.score,
         inbreeding_pct: r.inbreeding,
@@ -340,8 +403,13 @@ export function MatingPlanTab({
       });
       if (!error) count++;
     }
+
+    // Debitar doses usadas do botijão
+    await deductDosesFromTank();
+
     setSaving(false);
     setSaveMsg(`✅ ${count} acasalamentos salvos no banco. Acesse a aba Histórico para acompanhar.`);
+    if (onNavigate) onNavigate('history');
   }
 
   function openPrintReport() {
@@ -542,10 +610,20 @@ export function MatingPlanTab({
                     <tr key={r.female.id} className={`hover:bg-gray-50 ${!r.bull ? 'bg-orange-50/60' : ''}`}>
                       <td className="px-4 py-2 font-medium">{r.female.id}</td>
                       <td className="px-4 py-2 text-center">
-                        {r.bull ? (
-                          <div>
-                            <div className="font-semibold text-blue-dark">{r.bull.code}</div>
-                            <div className="text-xs text-gray-400">{r.bull.name ?? r.bull.short_name}</div>
+                        {r.allOptions.length > 0 ? (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <select
+                              value={r.bull?.code ?? ''}
+                              onChange={e => setOverrides(prev => ({ ...prev, [r.female.id]: e.target.value }))}
+                              className="text-xs font-semibold text-blue-dark bg-white border border-gray-200 rounded px-1 py-0.5 outline-none focus:border-blue-400 max-w-[120px] cursor-pointer"
+                            >
+                              {r.allOptions.map((opt, i) => (
+                                <option key={opt.bull.code} value={opt.bull.code}>
+                                  {opt.bull.code} {i === 0 ? '(Rec)' : i === 1 ? '(2ª)' : '(3ª)'}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="text-[10px] text-gray-400">{r.bull?.name ?? r.bull?.short_name}</div>
                           </div>
                         ) : (
                           <div className="text-xs">

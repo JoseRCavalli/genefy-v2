@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search, Plus, Trash2, ChevronDown, ChevronUp, Sliders, FlaskConical, SlidersHorizontal,
 } from 'lucide-react';
@@ -52,6 +53,94 @@ const WEIGHT_KEYS: { key: keyof WeightMap; label: string }[] = [
 
 const CUSTOM_PRESET = 'Personalizado';
 
+// ── Linha individual do botijão com estado local controlado ────────────────────
+function TankEntryRow({
+  entry,
+  onUpdateTank,
+  onRemoveFromTank,
+}: {
+  entry: import('../../hooks/useTank').TankEntry;
+  onUpdateTank: (tankId: string, doses: number | null, price: number | null) => Promise<unknown>;
+  onRemoveFromTank: (tankId: string) => Promise<unknown>;
+}) {
+  const [doses, setDoses] = useState(entry.doses?.toString() ?? '');
+  const [price, setPrice] = useState(entry.pricePerDose?.toString() ?? '');
+
+  // Sincroniza inputs quando o banco atualizar as doses (ex: débito do plano)
+  useEffect(() => {
+    setDoses(entry.doses?.toString() ?? '');
+  }, [entry.doses]);
+
+  useEffect(() => {
+    setPrice(entry.pricePerDose?.toString() ?? '');
+  }, [entry.pricePerDose]);
+
+  // Badge de doses restantes
+  const dosesNum = entry.doses;
+  const doseBadgeColor =
+    dosesNum === null ? 'bg-gray-100 text-gray-400' :
+    dosesNum === 0    ? 'bg-red-100 text-red-600 font-bold' :
+    dosesNum <= 5     ? 'bg-red-100 text-red-600' :
+    dosesNum <= 20    ? 'bg-orange-100 text-orange-600' :
+                        'bg-green-100 text-green-700';
+  const doseBadgeLabel =
+    dosesNum === null ? '∞' :
+    dosesNum === 0    ? '0 doses' :
+                        `${dosesNum}d`;
+
+  // Auto-save com debounce: garante que o tank está atualizado
+  // antes do usuário clicar em "Calcular" sem sair dos campos
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function scheduleAutoSave(d: string, p: string) {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      onUpdateTank(entry.tankId, d ? +d : null, p ? +p : null);
+    }, 400);
+  }
+
+  return (
+    <div className="flex flex-col gap-0.5 p-1.5 bg-gray-50 rounded text-xs">
+      {/* Linha 1: nome + badge de doses + lixeira */}
+      <div className="flex items-center gap-1">
+        <div className="flex-1 min-w-0 truncate">
+          <span className="font-medium">{entry.bull.code}</span>
+          {(entry.bull.name ?? entry.bull.short_name) && (
+            <span className="ml-1 text-gray-400 text-[10px]">
+              · {entry.bull.name ?? entry.bull.short_name}
+            </span>
+          )}
+        </div>
+        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${doseBadgeColor}`}>
+          {doseBadgeLabel}
+        </span>
+        <button onClick={() => onRemoveFromTank(entry.tankId)} className="text-red-400 hover:text-red-600 ml-0.5">
+          <Trash2 size={11} />
+        </button>
+      </div>
+      {/* Linha 2: inputs de doses e preço */}
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          placeholder="doses"
+          value={doses}
+          onChange={e => { setDoses(e.target.value); scheduleAutoSave(e.target.value, price); }}
+          onBlur={() => onUpdateTank(entry.tankId, doses ? +doses : null, price ? +price : null)}
+          className="w-16 px-1 py-0.5 border border-gray-200 rounded text-center bg-white"
+        />
+        <span className="text-gray-300">|</span>
+        <input
+          type="number"
+          placeholder="R$/dose"
+          value={price}
+          onChange={e => { setPrice(e.target.value); scheduleAutoSave(doses, e.target.value); }}
+          onBlur={() => onUpdateTank(entry.tankId, doses ? +doses : null, price ? +price : null)}
+          className="w-16 px-1 py-0.5 border border-gray-200 rounded text-center bg-white"
+        />
+      </div>
+    </div>
+  );
+}
+
 export function Sidebar({
   females, selectedFemale, onSelectFemale,
   allBulls, tank, tankBulls, farmId,
@@ -67,16 +156,42 @@ export function Sidebar({
   const [showWeights, setShowWeights] = useState(false);
   const [presetName, setPresetName] = useState('');
   const [catalogFilter, setCatalogFilter] = useState('');
+  // Portal position for bull dropdown
+  const [bullDropdownRect, setBullDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
+
   const femaleRef = useRef<HTMLDivElement>(null);
   const bullRef = useRef<HTMLDivElement>(null);
+  const bullDropdownRef = useRef<HTMLUListElement>(null);
+  const bullInputRef = useRef<HTMLInputElement>(null);
 
+  // Fecha dropdowns ao clicar fora
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (femaleRef.current && !femaleRef.current.contains(e.target as Node)) setShowFemaleList(false);
+      // Verifica tanto o wrapper do input quanto o ul do portal (que está no document.body)
+      const clickedInsideBull =
+        (bullRef.current?.contains(e.target as Node)) ||
+        (bullDropdownRef.current?.contains(e.target as Node));
+      if (!clickedInsideBull) setShowBullDropdown(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  // Atualiza posição do dropdown do botijão usando position:fixed
+  // para escapar de qualquer overflow-clip do aside pai
+  useEffect(() => {
+    if (showBullDropdown && bullSearch && bullInputRef.current) {
+      const rect = bullInputRef.current.getBoundingClientRect();
+      setBullDropdownRect({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    } else {
+      setBullDropdownRect(null);
+    }
+  }, [showBullDropdown, bullSearch]);
 
   const filteredFemales = females.filter(f =>
     f.id.toLowerCase().includes(femaleSearch.toLowerCase())
@@ -90,10 +205,15 @@ export function Sidebar({
   ).slice(0, 30);
 
   async function handleAddBull(bull: Bull) {
+    console.log('1. handleAddBull chamado:', bull.code);
     const dbId = bullRows.find(r => r.code === bull.code)?.id ?? bull.code;
+    console.log('2. dbId resolvido:', dbId);
+    console.log('3. bullRows disponíveis:', bullRows.length);
     setBullSearch('');
     setShowBullDropdown(false);
-    await onAddToTank(dbId);
+    setBullDropdownRect(null);
+    const result = await onAddToTank(dbId);
+    console.log('4. resultado do onAddToTank:', result);
   }
 
   function handleSliderChange(key: keyof WeightMap, value: number) {
@@ -198,62 +318,59 @@ export function Sidebar({
           ))}
         </select>
 
-        <div className="relative mb-2" ref={bullRef}>
+        {/* Input de busca — sem position:relative para não criar containing block do portal */}
+        <div className="mb-2" ref={bullRef}>
           <div className="relative">
             <Plus size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
             <input
+              ref={bullInputRef}
               value={bullSearch}
               onChange={e => { setBullSearch(e.target.value); setShowBullDropdown(true); }}
               onFocus={() => setShowBullDropdown(true)}
               placeholder="Adicionar touro…"
-              onBlur={() => setTimeout(() => setShowBullDropdown(false), 150)}
               className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-gold"
             />
           </div>
-          {showBullDropdown && bullSearch && (
-            <ul className="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto text-xs">
+
+          {/* Dropdown renderizado via portal no body — escapa de qualquer overflow-clip do aside */}
+          {showBullDropdown && bullSearch && bullDropdownRect && createPortal(
+            <ul
+              ref={bullDropdownRef}
+              style={{
+                position: 'fixed',
+                top: bullDropdownRect.top,
+                left: bullDropdownRect.left,
+                width: bullDropdownRect.width,
+                zIndex: 9999,
+              }}
+              className="bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto text-xs"
+            >
               {filteredBulls.length === 0 && (
                 <li className="px-3 py-2 text-gray-400">Nenhum touro encontrado</li>
               )}
               {filteredBulls.map(b => (
                 <li
                   key={b.code}
-                  onMouseDown={(e) => { e.preventDefault(); handleAddBull(b); }}
+                  onClick={() => handleAddBull(b)}
                   className="px-3 py-1.5 cursor-pointer hover:bg-amber-50 flex justify-between"
                 >
                   <span className="font-medium">{b.code}</span>
                   <span className="text-gray-500">{b.name ?? b.short_name}</span>
                 </li>
               ))}
-            </ul>
+            </ul>,
+            document.body
           )}
         </div>
 
         <div className="space-y-1 max-h-48 overflow-y-auto">
           {tank.map(entry => (
-            <div key={entry.tankId} className="flex items-center gap-1 p-1.5 bg-gray-50 rounded text-xs">
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{entry.bull.code}</div>
-                <div className="text-gray-500 truncate">{entry.bull.name}</div>
-              </div>
-              <input
-                type="number"
-                placeholder="doses"
-                defaultValue={entry.doses ?? ''}
-                onBlur={e => onUpdateTank(entry.tankId, e.target.value ? +e.target.value : null, entry.pricePerDose)}
-                className="w-12 px-1 py-0.5 border border-gray-200 rounded text-center"
-              />
-              <input
-                type="number"
-                placeholder="R$"
-                defaultValue={entry.pricePerDose ?? ''}
-                onBlur={e => onUpdateTank(entry.tankId, entry.doses, e.target.value ? +e.target.value : null)}
-                className="w-14 px-1 py-0.5 border border-gray-200 rounded text-center"
-              />
-              <button onClick={() => onRemoveFromTank(entry.tankId)} className="text-red-400 hover:text-red-600">
-                <Trash2 size={12} />
-              </button>
-            </div>
+            <TankEntryRow
+              key={entry.tankId}
+              entry={entry}
+              onUpdateTank={onUpdateTank}
+              onRemoveFromTank={onRemoveFromTank}
+            />
           ))}
         </div>
       </section>
