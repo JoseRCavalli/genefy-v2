@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, ChevronDown, ChevronUp, Dna, Star, Users, BarChart2 } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Dna, Star, Users, BarChart2, MilkOff } from 'lucide-react';
 import type { Female } from '../../lib/matching';
 import { fmt, calcCowRel, monthsToBreeding } from '../../lib/matching';
 import type { FemaleRow } from '../../lib/supabase';
@@ -28,13 +28,28 @@ function inbBadge(ginb: number | null | undefined) {
   return 'text-green-700';
 }
 
-function iaBadgeShort(bdate: string | null | undefined): string | null {
+function iaBadgeShort(bdate: string | null | undefined): React.ReactNode {
   if (!bdate) return null;
   const m = monthsToBreeding(bdate);
   if (m === null) return null;
-  if (m <= 0)  return '🟢';
-  if (m <= 6)  return `🟡 ${m}m`;
-  return `⏰ ${m}m`;
+  if (m <= 0) return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '1px 6px', borderRadius: '3px', fontSize: '9.5px', fontFamily: "'Inter', sans-serif", fontWeight: 600, background: 'rgba(22,163,74,0.10)', color: '#15803d' }}>
+      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+      Pronta
+    </span>
+  );
+  if (m <= 6) return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '1px 6px', borderRadius: '3px', fontSize: '9.5px', fontFamily: "'Inter', sans-serif", fontWeight: 600, background: 'rgba(180,83,9,0.10)', color: '#b45309' }}>
+      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#b45309', display: 'inline-block' }} />
+      {m}m
+    </span>
+  );
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '1px 6px', borderRadius: '3px', fontSize: '9.5px', fontFamily: "'Inter', sans-serif", fontWeight: 600, background: 'rgba(30,58,92,0.07)', color: '#6B7280' }}>
+      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#6B7280', display: 'inline-block' }} />
+      {m}m
+    </span>
+  );
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -157,12 +172,15 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
 
         {[
           { label: '🧬 Genoma', val: genomicOnly, set: setGenomicOnly },
-          { label: '🐄 Primíparas', val: primiOnly, set: setPrimiOnly },
+          { label: 'Primíparas', val: primiOnly, set: setPrimiOnly },
           { label: '⭐ Cadastradas', val: customOnly, set: setCustomOnly },
         ].map(f => (
           <label key={f.label} className="flex items-center gap-1.5 text-sm cursor-pointer select-none">
             <input type="checkbox" checked={f.val} onChange={e => f.set(e.target.checked)} className="accent-blue-600" />
-            {f.label}
+            {f.label === 'Primíparas'
+              ? <span className="flex items-center gap-1"><MilkOff size={11} className="text-pink-500" />Primíparas</span>
+              : f.label
+            }
           </label>
         ))}
 
@@ -200,7 +218,6 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
               const rel = Math.round((f._rel ?? calcCowRel(f)) * 100);
               const isCustom = customIds.has(f.id);
               const ia = iaBadgeShort(row?.bdate ?? f.bdate);
-
               return (
                 <>
                   <tr
@@ -282,7 +299,7 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
 
                     {/* IA badge */}
                     <td className="px-3 py-2 text-center text-xs font-medium">
-                      {ia ?? '—'}
+                      {iaBadgeShort(row?.bdate ?? f.bdate) ?? '—'}
                     </td>
 
                     {/* Flags */}

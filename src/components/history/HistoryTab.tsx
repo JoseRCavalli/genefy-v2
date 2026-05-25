@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { CheckCircle, Baby, XCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { CheckCircle, Baby, XCircle, RefreshCw, Trash2, ClipboardList, Syringe, Leaf, AlertOctagon, FlaskConical, Circle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { MatingRow } from '../../lib/supabase';
 
@@ -30,7 +30,7 @@ export function HistoryTab({ farmId, demoMode }: Props) {
       <div className="p-6 max-w-2xl mx-auto text-center space-y-4">
         <h2 className="text-lg font-bold text-blue-dark">Histórico de Acasalamentos</h2>
         <div className="p-6 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
-          🧪 O histórico requer Supabase configurado. Em modo demo, os acasalamentos planejados ficam apenas na sessão.
+          <FlaskConical size={14} className="inline mr-1" /> O histórico requer Supabase configurado. Em modo demo, os acasalamentos planejados ficam apenas na sessão.
         </div>
       </div>
     );
@@ -95,15 +95,15 @@ export function HistoryTab({ farmId, demoMode }: Props) {
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {([
-          { status: 'planned', icon: '📋', label: 'Planejados', color: 'border-blue-200 bg-blue-50' },
-          { status: 'executed', icon: '💉', label: 'Executados', color: 'border-amber-200 bg-amber-50' },
-          { status: 'confirmed_pregnant', icon: '🐄', label: 'Prenhes', color: 'border-green-200 bg-green-50' },
-          { status: 'failed', icon: '❌', label: 'Falharam', color: 'border-red-200 bg-red-50' },
-        ] as const).map(card => (
+          { status: 'planned' as const,            Icon: ClipboardList,  label: 'Planejados', color: 'border-blue-200 bg-blue-50',   iconColor: '#2E6DA4' },
+          { status: 'executed' as const,           Icon: Syringe,        label: 'Executados', color: 'border-amber-200 bg-amber-50',  iconColor: '#b45309' },
+          { status: 'confirmed_pregnant' as const, Icon: Leaf,           label: 'Prenhes',    color: 'border-green-200 bg-green-50', iconColor: '#15803d' },
+          { status: 'failed' as const,             Icon: AlertOctagon,   label: 'Falharam',   color: 'border-red-200 bg-red-50',     iconColor: '#b91c1c' },
+        ]).map(card => (
           <div key={card.status} className={`rounded-xl border p-4 ${card.color}`}>
-            <div className="text-2xl">{card.icon}</div>
-            <div className="text-2xl font-bold">{counts[card.status] ?? 0}</div>
-            <div className="text-sm text-gray-600">{card.label}</div>
+            <card.Icon size={22} style={{ color: card.iconColor, marginBottom: '6px' }} />
+            <div className="text-2xl font-bold" style={{ fontFamily: "'JetBrains Mono', monospace", color: card.iconColor }}>{counts[card.status] ?? 0}</div>
+            <div className="text-sm text-gray-500" style={{ fontFamily: "'Inter', sans-serif" }}>{card.label}</div>
           </div>
         ))}
       </div>
@@ -126,8 +126,8 @@ export function HistoryTab({ farmId, demoMode }: Props) {
           className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
         >
           <option value="">Todos (sêmen)</option>
-          <option value="yes">🟣 Sexado</option>
-          <option value="no">🔵 Convencional</option>
+          <option value="yes">Sexado</option>
+          <option value="no">Convencional</option>
         </select>
         <span className="text-xs text-gray-400 ml-auto">{filtered.length} registros</span>
       </div>
@@ -157,11 +157,30 @@ export function HistoryTab({ farmId, demoMode }: Props) {
                   <td className="px-4 py-2 font-medium">{m.females?.animal_id ?? '—'}</td>
                   <td className="px-4 py-2 font-mono text-blue-dark">{m.bulls?.code ?? '—'}</td>
                   <td className="px-4 py-2 text-center">
-                    {m.option_rank === 1 ? '🥇' : m.option_rank === 2 ? '🥈' : '💰'}
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: '20px', height: '20px', borderRadius: '50%', fontSize: '10px',
+                      fontFamily: "'JetBrains Mono', monospace", fontWeight: 700,
+                      background: m.option_rank === 1 ? '#C9A84C' : m.option_rank === 2 ? '#2E6DA4' : 'rgba(30,58,92,0.12)',
+                      color: m.option_rank === 1 ? '#fff' : m.option_rank === 2 ? '#fff' : '#1B3A5C',
+                    }}>
+                      {m.option_rank}
+                    </span>
                   </td>
                   <td className="px-4 py-2 text-center">{m.score?.toFixed(2) ?? '—'}</td>
                   <td className="px-4 py-2 text-center text-xs">{m.inbreeding_pct != null ? `${m.inbreeding_pct.toFixed(1)}%` : '—'}</td>
-                  <td className="px-4 py-2 text-center">{m.is_sexed_semen ? '🟣' : '🔵'}</td>
+                  <td className="px-4 py-2 text-center">
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      padding: '2px 8px', borderRadius: '3px', fontSize: '10.5px',
+                      fontFamily: "'Inter', sans-serif", fontWeight: 600,
+                      background: m.is_sexed_semen ? 'rgba(126,34,206,0.10)' : 'rgba(46,109,164,0.10)',
+                      color: m.is_sexed_semen ? '#7c3aed' : '#2E6DA4',
+                    }}>
+                      <Circle size={6} fill="currentColor" strokeWidth={0} />
+                      {m.is_sexed_semen ? 'Sexado' : 'Conv.'}
+                    </span>
+                  </td>
                   <td className="px-4 py-2 text-center">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[m.status]}`}>
                       {STATUS_LABELS[m.status]}

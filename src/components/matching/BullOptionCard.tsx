@@ -11,7 +11,6 @@ interface Props {
   onSave?: (result: MatchResult, rank: number, isSexed: boolean) => Promise<void>;
 }
 
-const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 const CATALOG_TAG: Record<string, { label: string; cls: string }> = {
   'Semex':                        { label: 'SEMEX',  cls: 'bg-sky-100 text-sky-700' },
@@ -52,7 +51,16 @@ export function BullOptionCard({ result, rank, female, isEconomic, onSave }: Pro
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">{MEDAL[rank]}</span>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0,
+              fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 700,
+              background: rank === 1 ? '#C9A84C' : rank === 2 ? '#2E6DA4' : 'rgba(30,58,92,0.10)',
+              color: rank === 1 ? '#fff' : rank === 2 ? '#fff' : '#1B3A5C',
+              boxShadow: rank === 1 ? '0 1px 6px rgba(201,168,76,0.40)' : rank === 2 ? '0 1px 6px rgba(46,109,164,0.30)' : 'none',
+            }}>
+              {rank}
+            </span>
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-blue-dark">{bull.code}</span>

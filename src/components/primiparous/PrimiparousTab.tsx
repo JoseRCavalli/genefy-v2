@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Lightbulb, Circle, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Bull, Female, WeightMap } from '../../lib/matching';
 import { getTop3Options } from '../../lib/matching';
 
@@ -84,7 +85,10 @@ export function PrimiparousTab({
 
       {/* Info box */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
-        <p className="font-semibold mb-1">💡 Por que sêmen sexado para primíparas?</p>
+        <p className="font-semibold mb-1 flex items-center gap-2">
+          <Lightbulb size={14} className="text-amber-500" style={{ flexShrink: 0 }} />
+          Por que sêmen sexado para primíparas?
+        </p>
         <p>Vacas de primeiro parto têm pelve menor, tornando partos de bezerros machos mais arriscados. O sêmen sexado garante ~90% de chance de bezerra fêmea, reduzindo risco de distocia. Custo por dose é 2-3× maior e taxa de concepção ~10-15% inferior ao convencional.</p>
       </div>
 
@@ -118,7 +122,9 @@ export function PrimiparousTab({
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      {row.is_primiparous ? '★ Primípara' : 'Marcar'}
+                      {row.is_primiparous
+                        ? <><Star size={10} className="inline" style={{ marginRight: '3px', marginBottom: '1px' }} />Primípara</>
+                        : 'Marcar'}
                     </button>
                   </td>
                 </tr>
@@ -151,21 +157,29 @@ export function PrimiparousTab({
                       onClick={() => setSexedMap(m => ({ ...m, [female.id]: false }))}
                       className={`px-3 py-1 rounded-full text-xs border transition-colors ${!isSexed ? 'bg-blue-mid text-white border-blue-mid' : 'border-gray-300 text-gray-600'}`}
                     >
-                      🔵 Convencional
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Circle size={7} fill="currentColor" strokeWidth={0} style={{ color: !isSexed ? '#fff' : '#2E6DA4' }} />
+                        Convencional
+                      </span>
                     </button>
                     <button
                       onClick={() => setSexedMap(m => ({ ...m, [female.id]: true }))}
                       className={`px-3 py-1 rounded-full text-xs border transition-colors ${isSexed ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-300 text-gray-600'}`}
                     >
-                      🟣 Sexado
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Circle size={7} fill="currentColor" strokeWidth={0} style={{ color: isSexed ? '#fff' : '#7c3aed' }} />
+                        Sexado
+                      </span>
                     </button>
                   </div>
                 </div>
                 <button
                   onClick={() => setExpandedId(expandedId === female.id ? null : female.id)}
-                  className="text-sm text-blue-mid hover:underline mb-3"
+                  className="text-sm text-blue-mid hover:underline mb-3 flex items-center gap-1"
                 >
-                  {expandedId === female.id ? '▲ Ocultar opções' : '▼ Ver opções de touros'}
+                  {expandedId === female.id
+                    ? <><ChevronUp size={13} /> Ocultar opções</>
+                    : <><ChevronDown size={13} /> Ver opções de touros</>}
                 </button>
                 {expandedId === female.id && (
                   <div className="grid md:grid-cols-3 gap-3">
