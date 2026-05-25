@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Search, ChevronDown, ChevronUp, Dna, Star, Users } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Dna, Star, Users, BarChart2 } from 'lucide-react';
 import type { Female } from '../../lib/matching';
 import { fmt, calcCowRel, monthsToBreeding } from '../../lib/matching';
 import type { FemaleRow } from '../../lib/supabase';
+import { FemaleProfileModal } from './FemaleProfileModal';
 
 interface Props {
   females: Female[];
@@ -45,6 +46,7 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
   const [customOnly, setCustomOnly]   = useState(false);
   const [breedFilter, setBreedFilter] = useState('');
   const [expandedId, setExpandedId]   = useState<string | null>(null);
+  const [profileFemale, setProfileFemale] = useState<Female | null>(null);
 
   // Mapa rápido: animal_id → FemaleRow (para campos extras como name, bdate)
   const rowMap = useMemo(() =>
@@ -302,12 +304,40 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
 
                     {/* Ação */}
                     <td className="px-3 py-2 text-center" onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={() => { onSelectFemale(f); onTabChange('matching'); }}
-                        className="px-2 py-0.5 text-[11px] bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
-                      >
-                        Matching →
-                      </button>
+                      <div style={{ display: 'flex', gap: '5px', justifyContent: 'center', alignItems: 'center' }}>
+                        <button
+                          onClick={() => setProfileFemale(f)}
+                          title="Ver índices completos"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '3px 8px',
+                            fontSize: '11px',
+                            fontFamily: "'Inter', sans-serif",
+                            fontWeight: 600,
+                            letterSpacing: '0.02em',
+                            color: '#1B3A5C',
+                            background: 'rgba(30,58,92,0.07)',
+                            border: '1px solid rgba(30,58,92,0.18)',
+                            borderRadius: '3px',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            transition: 'background 0.15s ease',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(30,58,92,0.13)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(30,58,92,0.07)')}
+                        >
+                          <BarChart2 size={10} />
+                          Índices
+                        </button>
+                        <button
+                          onClick={() => { onSelectFemale(f); onTabChange('matching'); }}
+                          className="px-2 py-0.5 text-[11px] bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
+                        >
+                          Matching →
+                        </button>
+                      </div>
                     </td>
                   </tr>
 
@@ -376,10 +406,23 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
         <span><Dna size={11} className="inline text-purple-600" /> = Genoma confirmado</span>
         <span><Star size={11} className="inline text-amber-500" /> = Cadastrada manualmente</span>
         <span><span className="text-pink-500 font-bold">1ª</span> = Primípara</span>
-        <span>🟢 = Pronta para IA · 🟡 = IA em breve · ⏰ = IA futura</span>
+        <span>Pronta para IA · IA em breve · IA futura</span>
         <span><i>est.</i> = valor estimado pelo Parent Average</span>
-        <span>gINB% <span className="text-red-500">≥10%</span> = consanguinidade elevada</span>
+        <span>gINB% ≥10% = consanguinidade elevada</span>
       </div>
+
+      {/* Female profile modal */}
+      <FemaleProfileModal
+        female={profileFemale}
+        femaleRow={profileFemale ? rowMap.get(profileFemale.id) : undefined}
+        onClose={() => setProfileFemale(null)}
+        onGoToMatching={() => {
+          if (profileFemale) {
+            onSelectFemale(profileFemale);
+            onTabChange('matching');
+          }
+        }}
+      />
     </div>
   );
 }

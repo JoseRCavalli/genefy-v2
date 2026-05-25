@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Search, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Plus, X } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Plus, X, BarChart2 } from 'lucide-react';
 import type { Bull } from '../../lib/matching';
 import { getCarrierHaplotypes, fmt } from '../../lib/matching';
 import type { BullRow } from '../../lib/supabase';
+import { BullProfileModal } from './BullProfileModal';
 
 interface Props {
   allBulls: Bull[];
@@ -47,6 +48,7 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [profileBull, setProfileBull] = useState<Bull | null>(null);
 
   const tankCodes = new Set(tankBulls.map(b => b.code));
 
@@ -201,6 +203,7 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
               <th className="px-3 py-3 text-center">HH</th>
               <th className="px-3 py-3 text-center">Preço/Dose</th>
               <th className="px-3 py-3 text-center">Origem</th>
+              <th className="px-3 py-3 text-center">Ação</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -263,6 +266,28 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
                       }`}>
                         {bull.catalog ?? (isCustom ? 'MANUAL' : 'CDCB')}
                       </span>
+                    </td>
+                    {/* Ação */}
+                    <td className="px-3 py-2 text-center" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => setProfileBull(bull)}
+                        title="Ver índices completos"
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          padding: '3px 8px', fontSize: '11px',
+                          fontFamily: "'Inter', sans-serif", fontWeight: 600,
+                          letterSpacing: '0.02em', color: '#1B3A5C',
+                          background: 'rgba(30,58,92,0.07)',
+                          border: '1px solid rgba(30,58,92,0.18)',
+                          borderRadius: '3px', cursor: 'pointer', whiteSpace: 'nowrap',
+                          transition: 'background 0.15s ease',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(30,58,92,0.13)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(30,58,92,0.07)')}
+                      >
+                        <BarChart2 size={10} />
+                        Índices
+                      </button>
                     </td>
                   </tr>
                   {isExpanded && (
@@ -373,8 +398,7 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
                     <div key={f.key}>
                       <label className="text-xs text-gray-500 mb-1 block">{f.label}</label>
                       <input
-                        type="number"
-                        step="any"
+                        type="number" step="any"
                         value={(form as Record<string, string>)[f.key]}
                         onChange={e => setField(f.key as FormKey, e.target.value)}
                         className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:border-blue-mid text-sm"
@@ -406,7 +430,7 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
                 </div>
               </div>
 
-              {/* Haplótipos — texto simples + emoji (sem SVG dentro de option) */}
+              {/* Haplótipos */}
               <div>
                 <p className="text-xs font-semibold uppercase text-gray-400 mb-2">Haplótipos Letais</p>
                 <div className="grid grid-cols-3 gap-3">
@@ -427,9 +451,8 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
                 </div>
               </div>
 
-              {/* Info sobre cruzamento automático */}
               <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-800">
-                <strong>✅ Cruzamento automático:</strong> ao salvar, este touro será automaticamente elegível para matching com todas as {' '}
+                <strong>Cruzamento automático:</strong> ao salvar, este touro será automaticamente elegível para matching com todas as{' '}
                 fêmeas do rebanho, usando os mesmos algoritmos genéticos do sistema (score ponderado, consanguinidade, PPPV).
               </div>
 
@@ -439,15 +462,13 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
 
               <div className="flex gap-3 pt-1">
                 <button
-                  type="submit"
-                  disabled={saving}
+                  type="submit" disabled={saving}
                   className="flex-1 py-2.5 bg-[#C9A84C] text-white text-sm font-semibold rounded-lg hover:opacity-90 disabled:opacity-50"
                 >
-                  {saving ? 'Salvando…' : '✅ Salvar Touro'}
+                  {saving ? 'Salvando…' : 'Salvar Touro'}
                 </button>
                 <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
+                  type="button" onClick={() => setShowModal(false)}
                   className="px-4 py-2.5 border border-gray-300 text-sm rounded-lg hover:bg-gray-50"
                 >
                   Cancelar
@@ -457,6 +478,13 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
           </div>
         </div>
       )}
+
+      {/* Bull profile modal */}
+      <BullProfileModal
+        bull={profileBull}
+        inTank={profileBull ? tankCodes.has(profileBull.code) : false}
+        onClose={() => setProfileBull(null)}
+      />
     </div>
   );
 }
