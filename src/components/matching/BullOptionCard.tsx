@@ -1,7 +1,10 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronUp, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ChevronDown, ChevronUp, DollarSign, AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 import type { MatchResult, Female } from '../../lib/matching';
-import { progenyProfile, inbClass, getCarrierHaplotypes, fmt, fmtPppv, pppvClass } from '../../lib/matching';
+import { progenyProfile, inbClass, getCarrierHaplotypes, inb, fmt, fmtPppv, pppvClass } from '../../lib/matching';
+import { PerfilProgenieModal } from './PerfilProgenie';
+import { calcularIndicesProgenie } from '../../utils/calcularProgenie';
+import type { PerfilProgenieProps } from '../../types/PerfilProgenie.types';
 
 interface Props {
   result: MatchResult;
@@ -29,12 +32,19 @@ export function BullOptionCard({ result, rank, female, isEconomic, onSave }: Pro
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isSexed, setIsSexed] = useState(false);
+  const [showPerfil, setShowPerfil] = useState(false);
+
   const { bull } = result;
   // inb() já retorna valor em % (ex: 7.81) — não multiplicar por 100
   const inbPct = result.inbreeding ?? 0;
-  const inb = inbClass(inbPct);
+  const inbResult = inbClass(inbPct);
   const carriers = getCarrierHaplotypes(bull);
   const progeny = expanded ? progenyProfile(female, bull) : [];
+
+  // Build progeny profile props
+  const perfilProps = useMemo((): PerfilProgenieProps => {
+    return calcularIndicesProgenie(female, bull);
+  }, [female, bull]);
 
   async function handleSave() {
     if (!onSave) return;
@@ -95,7 +105,7 @@ export function BullOptionCard({ result, rank, female, isEconomic, onSave }: Pro
             <div className="text-gray-400">NM$</div>
             <div className="font-semibold">{fmt(bull.net_merit, 0)}</div>
           </div>
-          <div className={`rounded p-1.5 text-center ${inb.cls}`}>
+          <div className={`rounded p-1.5 text-center ${inbResult.cls}`}>
             <div className="opacity-70">Inb</div>
             <div className="font-semibold">{inbPct.toFixed(1)}%</div>
           </div>
@@ -169,7 +179,16 @@ export function BullOptionCard({ result, rank, female, isEconomic, onSave }: Pro
       {/* Progeny Profile */}
       {expanded && (
         <div className="border-t border-gray-100 px-4 py-3">
-          <div className="text-xs font-semibold text-gray-500 mb-2">Perfil da Progênie (PTA + PPPV)</div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs font-semibold text-gray-500">Perfil da Progênie (PTA + PPPV)</div>
+            <button
+              onClick={() => setShowPerfil(true)}
+              className="flex items-center gap-1 text-xs text-blue-mid hover:underline"
+            >
+              <FileText size={11} />
+              Ver Perfil Completo
+            </button>
+          </div>
           <div className="grid grid-cols-2 gap-1 text-xs">
             {progeny.map(p => (
               <div key={p.label} className="flex justify-between bg-gray-50 rounded px-2 py-1">
@@ -182,6 +201,13 @@ export function BullOptionCard({ result, rank, female, isEconomic, onSave }: Pro
           </div>
         </div>
       )}
+
+      {/* Perfil da Progênie Modal */}
+      <PerfilProgenieModal
+        isOpen={showPerfil}
+        onClose={() => setShowPerfil(false)}
+        {...perfilProps}
+      />
     </div>
   );
 }

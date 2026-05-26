@@ -1,10 +1,13 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
-import { Play, Download, ChevronLeft, ChevronRight, BarChart2, Clock, RefreshCw } from 'lucide-react';
+import { Play, Download, ChevronLeft, ChevronRight, BarChart2, Clock, RefreshCw, Dna } from 'lucide-react';
 import type { Bull, Female, WeightMap } from '../../lib/matching';
 import type { TankEntry } from '../../hooks/useTank';
 import { fmt } from '../../lib/matching';
 import { supabase } from '../../lib/supabase';
 import type { MatrixPair } from '../../workers/matrixWorker';
+import { PerfilProgenieModal } from '../matching/PerfilProgenie';
+import { calcularIndicesProgenie } from '../../utils/calcularProgenie';
+import type { PerfilProgenieProps } from '../../types/PerfilProgenie.types';
 
 const PAGE_SIZE = 100;
 
@@ -41,6 +44,15 @@ export function FullAnalysisTab({
   const [cache, setCache] = useState<CacheInfo | null>(null);
   const [cacheLoaded, setCacheLoaded] = useState(false);
   const workerRef = useRef<Worker | null>(null);
+  const [progenieAberta, setProgenieAberta] = useState<PerfilProgenieProps | null>(null);
+
+  const handleVerProgenie = useCallback((femaleId: string, bullCode: string) => {
+    const femaleObj = females.find(f => f.id === femaleId);
+    const bullObj = allBulls.find(b => b.code === bullCode);
+    if (femaleObj && bullObj) {
+      setProgenieAberta(calcularIndicesProgenie(femaleObj, bullObj));
+    }
+  }, [females, allBulls]);
 
   // Load cache on mount
   const loadCache = useCallback(async () => {
@@ -322,6 +334,7 @@ export function FullAnalysisTab({
                   <th className="px-3 py-2.5 text-center">HH</th>
                   <th className="px-3 py-2.5 text-center">Beta</th>
                   <th className="px-3 py-2.5 text-left">Catálogo</th>
+                  <th className="px-3 py-2.5 text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -353,6 +366,15 @@ export function FullAnalysisTab({
                       {r.beta_casein && <span className="px-1 bg-blue-50 text-blue-700 rounded">{r.beta_casein}</span>}
                     </td>
                     <td className="px-3 py-2 text-gray-500">{r.catalog ?? '—'}</td>
+                    <td className="px-3 py-2 text-center">
+                      <button
+                        onClick={() => handleVerProgenie(r.femaleId, r.bullCode)}
+                        title="Ver Perfil da Progênie"
+                        className="p-1 text-blue-mid hover:bg-blue-50 rounded inline-flex items-center justify-center"
+                      >
+                        <Dna size={14} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -382,6 +404,13 @@ export function FullAnalysisTab({
           <p>Configure os filtros e clique em <strong>Calcular</strong> para iniciar a análise completa.</p>
           <p className="text-xs mt-1">Com {females.length} fêmeas e {allBulls.length} touros, serão avaliados ~{(females.length * allBulls.length).toLocaleString('pt-BR')} cruzamentos.</p>
         </div>
+      )}
+      {progenieAberta && (
+        <PerfilProgenieModal
+          isOpen={!!progenieAberta}
+          onClose={() => setProgenieAberta(null)}
+          {...progenieAberta}
+        />
       )}
     </div>
   );

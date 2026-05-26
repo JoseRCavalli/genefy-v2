@@ -10,10 +10,11 @@ import { getBrandFromCode } from '../lib/naab-brands';
 import type { Bull, Female, WeightMap } from '../lib/genetics';
 import type { FarmRow, FemaleRow, BullRow } from '../lib/supabase';
 import type { TankEntry } from './useTank';
+import { rowToFemale } from './useFemales';
 
 const DEMO_FARM: FarmRow = {
   id: 'demo-farm',
-  name: 'Granja Cavalli (Demo)',
+  name: 'Granja Cavalli',
   owner_name: 'Pedro Henrique Cavalli',
   created_at: new Date().toISOString(),
 };
@@ -129,25 +130,79 @@ export function useDemoFemales() {
       id: `female-${i}`,
       farm_id: 'demo-farm',
       animal_id: f.id,
+      reg_id: f.reg_id ?? null,
       name: null,
       breed: f.breed || 'HO',
       lact: f.lact ?? 0,
       ginb: f.ginb ?? null,
+      // Mérito econômico
       net_merit: f.net_merit ?? null,
+      tpi: f.tpi ?? null,
+      cheese_merit: f.cheese_merit ?? null,
+      fluid_merit: f.fluid_merit ?? null,
+      // Produção
       milk: f.milk ?? null,
       protein: f.protein ?? null,
       fat: f.fat ?? null,
+      fat_pct: f.fat_pct ?? null,
+      protein_pct: f.protein_pct ?? null,
       productive_life: f.productive_life ?? null,
+      feed_efficiency: f.feed_efficiency ?? null,
+      // Fertilidade
       dpr: f.dpr ?? null,
+      hcr: f.hcr ?? null,
+      ccr: f.ccr ?? null,
       fertility_index: f.fertility_index ?? null,
+      early_first_calving: f.early_first_calving ?? null,
+      // Saúde
+      scs: f.scs ?? null,
+      health_index: f.health_index ?? null,
+      mastitis: f.mastitis ?? null,
+      livability: f.livability ?? null,
+      heifer_livability: f.heifer_livability ?? null,
+      // Parto
+      sire_calving_ease: f.sire_calving_ease ?? null,
+      daughter_calving_ease: f.daughter_calving_ease ?? null,
+      sire_stillbirth: f.sire_stillbirth ?? null,
+      daughter_stillbirth: f.daughter_stillbirth ?? null,
+      // Compostos de conformação
+      ptat: f.ptat ?? null,
       udc: f.udc ?? null,
       flc: f.flc ?? null,
-      scs: f.scs ?? null,
+      bde: f.bde ?? null,
+      dfm: f.dfm ?? null,
+      // Traits individuais de conformação
+      sta: f.sta ?? null,
+      str_val: f.str_val ?? null,
+      fls: f.fls ?? null,
+      fta: f.fta ?? null,
+      ftp: f.ftp ?? null,
+      fua: f.fua ?? null,
+      rlr: f.rlr ?? null,
+      rls: f.rls ?? null,
+      rpa: f.rpa ?? null,
+      rtp: f.rtp ?? null,
+      ruh: f.ruh ?? null,
+      ruw: f.ruw ?? null,
+      tlg: f.tlg ?? null,
+      trw: f.trw ?? null,
+      ucl: f.ucl ?? null,
+      udp: f.udp ?? null,
+      // Pedigree
       sire_naab: f.sire_naab ?? null,
+      sire_name: f.sire_name ?? null,
+      sire_reg: f.sire_reg ?? null,
       mgs_naab: f.mgs_naab ?? null,
+      mgs_name: f.mgs_name ?? null,
       mmgs_naab: f.mmgs_naab ?? null,
       dam_id: null,
-      bdate: null,
+      dam_reg: f.dam_reg ?? null,
+      dam_animal_id: f.dam_animal_id ?? null,
+      // Caseínas
+      beta_casein: f.beta_casein ?? null,
+      kappa_casein: f.kappa_casein ?? null,
+      // Metadata
+      bdate: f.bdate ?? null,
       genomic: false,
       age: f.age ?? null,
       is_primiparous: false,
@@ -156,25 +211,7 @@ export function useDemoFemales() {
     }))
   );
 
-  const females: Female[] = femaleRows.map(r => ({
-    id: r.animal_id,
-    breed: r.breed,
-    lact: r.lact,
-    ginb: r.ginb ?? undefined,
-    net_merit: r.net_merit ?? undefined,
-    milk: r.milk ?? undefined,
-    productive_life: r.productive_life ?? undefined,
-    dpr: r.dpr ?? undefined,
-    fertility_index: r.fertility_index ?? undefined,
-    udc: r.udc ?? undefined,
-    flc: r.flc ?? undefined,
-    scs: r.scs ?? undefined,
-    sire_naab: r.sire_naab ?? undefined,
-    mgs_naab: r.mgs_naab ?? undefined,
-    mmgs_naab: r.mmgs_naab ?? undefined,
-    age: r.age ?? undefined,
-    is_primiparous: r.is_primiparous,
-  }));
+  const females: Female[] = femaleRows.map(r => rowToFemale(r));
 
   const reload = useCallback(() => {}, []);
 
@@ -189,14 +226,6 @@ export function useDemoFemales() {
       return [...rows, {
         id: `female-new-${Date.now()}`,
         farm_id: 'demo-farm',
-        name: null, breed: 'HO', lact: 0,
-        ginb: null, net_merit: null, milk: null, protein: null, fat: null,
-        productive_life: null, dpr: null, fertility_index: null,
-        udc: null, flc: null, scs: null,
-        sire_naab: null, mgs_naab: null, mmgs_naab: null,
-        dam_id: null, bdate: null, genomic: false, age: null,
-        is_primiparous: false, notes: null,
-        created_at: new Date().toISOString(),
         ...f,
       } as FemaleRow];
     });

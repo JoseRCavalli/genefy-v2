@@ -227,7 +227,7 @@ function SupabaseApp() {
   if (!farm) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50 gap-4">
-        <h1 className="text-xl font-bold text-[#1B3A5C]">Genefy v2</h1>
+        <h1 className="text-xl font-bold text-[#1B3A5C]">Genefy</h1>
         <p className="text-gray-500">Nenhuma fazenda encontrada. Configure as variáveis de ambiente e rode o seed.</p>
         <code className="text-sm bg-gray-100 px-3 py-2 rounded">npm run seed</code>
       </div>

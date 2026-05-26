@@ -1,10 +1,13 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { X, Calculator, Save, Printer, CheckCircle } from 'lucide-react';
+import { X, Calculator, Save, Printer, CheckCircle, Dna } from 'lucide-react';
 import type { Bull, Female, WeightMap, PlanResult } from '../../lib/matching';
 import { runMatingPlan, inb, fmt, inbClass } from '../../lib/matching';
 import { supabase } from '../../lib/supabase';
 import type { BullRow, FemaleRow } from '../../lib/supabase';
 import type { TankEntry } from '../../hooks/useTank';
+import { PerfilProgenieModal } from '../matching/PerfilProgenie';
+import { calcularIndicesProgenie } from '../../utils/calcularProgenie';
+import type { PerfilProgenieProps } from '../../types/PerfilProgenie.types';
 
 const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
@@ -277,6 +280,11 @@ export function MatingPlanTab({
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [progenieAberta, setProgenieAberta] = useState<PerfilProgenieProps | null>(null);
+
+  function handleVerProgenie(female: Female, bull: Bull) {
+    setProgenieAberta(calcularIndicesProgenie(female, bull));
+  }
 
   const results = useMemo(() => {
     return rawResults.map(r => {
@@ -612,17 +620,28 @@ export function MatingPlanTab({
                       <td className="px-4 py-2 text-center">
                         {r.allOptions.length > 0 ? (
                           <div className="flex flex-col items-center gap-0.5">
-                            <select
-                              value={r.bull?.code ?? ''}
-                              onChange={e => setOverrides(prev => ({ ...prev, [r.female.id]: e.target.value }))}
-                              className="text-xs font-semibold text-blue-dark bg-white border border-gray-200 rounded px-1 py-0.5 outline-none focus:border-blue-400 max-w-[120px] cursor-pointer"
-                            >
-                              {r.allOptions.map((opt, i) => (
-                                <option key={opt.bull.code} value={opt.bull.code}>
-                                  {opt.bull.code} {i === 0 ? '(Rec)' : i === 1 ? '(2ª)' : '(3ª)'}
-                                </option>
-                              ))}
-                            </select>
+                            <div className="flex items-center gap-1.5 justify-center">
+                              <select
+                                value={r.bull?.code ?? ''}
+                                onChange={e => setOverrides(prev => ({ ...prev, [r.female.id]: e.target.value }))}
+                                className="text-xs font-semibold text-blue-dark bg-white border border-gray-200 rounded px-1 py-0.5 outline-none focus:border-blue-400 max-w-[120px] cursor-pointer"
+                              >
+                                {r.allOptions.map((opt, i) => (
+                                  <option key={opt.bull.code} value={opt.bull.code}>
+                                    {opt.bull.code} {i === 0 ? '(Rec)' : i === 1 ? '(2ª)' : '(3ª)'}
+                                  </option>
+                                ))}
+                              </select>
+                              {r.bull && (
+                                <button
+                                  onClick={() => handleVerProgenie(r.female, r.bull!)}
+                                  title="Ver Perfil da Progênie"
+                                  className="p-1 text-blue-mid hover:bg-blue-50 rounded flex items-center justify-center"
+                                >
+                                  <Dna size={13} />
+                                </button>
+                              )}
+                            </div>
                             <div className="text-[10px] text-gray-400">{r.bull?.name ?? r.bull?.short_name}</div>
                           </div>
                         ) : (
@@ -639,8 +658,34 @@ export function MatingPlanTab({
                       <td className="px-4 py-2 text-center text-xs font-medium text-amber-700">
                         {price != null && price > 0 ? `R$ ${price.toFixed(0)}` : '—'}
                       </td>
-                      <td className="px-4 py-2 text-center text-xs text-gray-500">{opt2?.bull.code ?? '—'}</td>
-                      <td className="px-4 py-2 text-center text-xs text-gray-500">{opt3?.bull.code ?? '—'}</td>
+                      <td className="px-4 py-2 text-center text-xs text-gray-500">
+                        {opt2 ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <span>{opt2.bull.code}</span>
+                            <button
+                              onClick={() => handleVerProgenie(r.female, opt2.bull)}
+                              title="Ver Perfil da Progênie (2ª Opção)"
+                              className="p-0.5 text-blue-mid hover:bg-blue-50 rounded flex items-center justify-center"
+                            >
+                              <Dna size={12} />
+                            </button>
+                          </div>
+                        ) : '—'}
+                      </td>
+                      <td className="px-4 py-2 text-center text-xs text-gray-500">
+                        {opt3 ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <span>{opt3.bull.code}</span>
+                            <button
+                              onClick={() => handleVerProgenie(r.female, opt3.bull)}
+                              title="Ver Perfil da Progênie (3ª Opção)"
+                              className="p-0.5 text-blue-mid hover:bg-blue-50 rounded flex items-center justify-center"
+                            >
+                              <Dna size={12} />
+                            </button>
+                          </div>
+                        ) : '—'}
+                      </td>
                     </tr>
                   );
                 })}
@@ -648,6 +693,13 @@ export function MatingPlanTab({
             </table>
           </div>
         </>
+      )}
+      {progenieAberta && (
+        <PerfilProgenieModal
+          isOpen={!!progenieAberta}
+          onClose={() => setProgenieAberta(null)}
+          {...progenieAberta}
+        />
       )}
     </div>
   );

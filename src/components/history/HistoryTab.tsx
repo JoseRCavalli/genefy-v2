@@ -1,7 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
-import { CheckCircle, Baby, XCircle, RefreshCw, Trash2, ClipboardList, Syringe, Leaf, AlertOctagon, FlaskConical, Circle } from 'lucide-react';
+import { useEffect, useState, useCallback, Fragment } from 'react';
+import { CheckCircle, Baby, XCircle, RefreshCw, Trash2, ClipboardList, Syringe, Leaf, AlertOctagon, FlaskConical, Circle, Dna, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import type { MatingRow } from '../../lib/supabase';
+import type { MatingRow, FemaleRow, BullRow } from '../../lib/supabase';
+import { PerfilProgenieModal } from '../matching/PerfilProgenie';
+import { calcularIndicesProgenie } from '../../utils/calcularProgenie';
+import type { PerfilProgenieProps } from '../../types/PerfilProgenie.types';
 
 type MatingStatus = MatingRow['status'];
 
@@ -35,17 +38,19 @@ export function HistoryTab({ farmId, demoMode }: Props) {
       </div>
     );
   }
-  const [matings, setMatings] = useState<(MatingRow & { females?: { animal_id: string }; bulls?: { code: string; short_name: string | null } })[]>([]);
+  const [matings, setMatings] = useState<(MatingRow & { females?: FemaleRow; bulls?: BullRow })[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<MatingStatus | ''>('');
   const [filterSexed, setFilterSexed] = useState<'' | 'yes' | 'no'>('');
   const [updating, setUpdating] = useState<string | null>(null);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [progenieAberta, setProgenieAberta] = useState<PerfilProgenieProps | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
       .from('matings')
-      .select('*, females(animal_id), bulls(code, short_name)')
+      .select('*, females(*), bulls(*)')
       .eq('farm_id', farmId)
       .order('created_at', { ascending: false })
       .limit(200);
@@ -53,13 +58,30 @@ export function HistoryTab({ farmId, demoMode }: Props) {
     setLoading(false);
   }, [farmId]);
 
+  const handleRowClick = (matingId: string) => {
+    setExpandedRow(prev => prev === matingId ? null : matingId);
+  };
+
   useEffect(() => { load(); }, [load]);
 
   async function updateStatus(id: string, status: MatingStatus) {
     setUpdating(id);
-    await supabase.from('matings').update({ status }).eq('id', id);
+    // Optimistic update
+    setMatings(prev => prev.map(m => m.id === id ? { ...m, status } : m));
+    const { error } = await supabase.from('matings').update({ status }).eq('id', id);
     setUpdating(null);
+    if (error) console.error(error);
     load();
+  }
+
+  async function handleStatusChange(mating: typeof matings[0], newStatus: MatingStatus) {
+    if (mating.status === 'confirmed_pregnant' && newStatus !== 'confirmed_pregnant') {
+      const confirmed = window.confirm(
+        `Tem certeza que deseja alterar o status de Prenha para ${STATUS_LABELS[newStatus]}?\nEsta ação pode afetar os relatórios de prenhez.`
+      );
+      if (!confirmed) return;
+    }
+    await updateStatus(mating.id, newStatus);
   }
 
   async function deleteMating(id: string) {
@@ -95,17 +117,26 @@ export function HistoryTab({ farmId, demoMode }: Props) {
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {([
-          { status: 'planned' as const,            Icon: ClipboardList,  label: 'Planejados', color: 'border-blue-200 bg-blue-50',   iconColor: '#2E6DA4' },
-          { status: 'executed' as const,           Icon: Syringe,        label: 'Executados', color: 'border-amber-200 bg-amber-50',  iconColor: '#b45309' },
-          { status: 'confirmed_pregnant' as const, Icon: Leaf,           label: 'Prenhes',    color: 'border-green-200 bg-green-50', iconColor: '#15803d' },
-          { status: 'failed' as const,             Icon: AlertOctagon,   label: 'Falharam',   color: 'border-red-200 bg-red-50',     iconColor: '#b91c1c' },
-        ]).map(card => (
-          <div key={card.status} className={`rounded-xl border p-4 ${card.color}`}>
-            <card.Icon size={22} style={{ color: card.iconColor, marginBottom: '6px' }} />
-            <div className="text-2xl font-bold" style={{ fontFamily: "'JetBrains Mono', monospace", color: card.iconColor }}>{counts[card.status] ?? 0}</div>
-            <div className="text-sm text-gray-500" style={{ fontFamily: "'Inter', sans-serif" }}>{card.label}</div>
-          </div>
-        ))}
+          { status: 'planned' as const,            Icon: ClipboardList,  label: 'Planejados', bg: 'bg-blue-50/50', defaultBorder: 'border-blue-200/60', activeBorder: 'border-blue-600 ring-1 ring-blue-600', iconColor: '#2E6DA4' },
+          { status: 'executed' as const,           Icon: Syringe,        label: 'Executados', bg: 'bg-amber-50/50', defaultBorder: 'border-amber-200/60', activeBorder: 'border-amber-500 ring-1 ring-amber-500', iconColor: '#b45309' },
+          { status: 'confirmed_pregnant' as const, Icon: Leaf,           label: 'Prenhes',    bg: 'bg-green-50/50', defaultBorder: 'border-green-200/60', activeBorder: 'border-green-600 ring-1 ring-green-600', iconColor: '#15803d' },
+          { status: 'failed' as const,             Icon: AlertOctagon,   label: 'Falharam',   bg: 'bg-red-50/50', defaultBorder: 'border-red-200/60', activeBorder: 'border-red-600 ring-1 ring-red-600', iconColor: '#b91c1c' },
+        ]).map(card => {
+          const isActive = filterStatus === card.status;
+          return (
+            <div
+              key={card.status}
+              onClick={() => setFilterStatus(prev => prev === card.status ? '' : card.status)}
+              className={`rounded-xl border-2 p-4 transition-all cursor-pointer select-none ${card.bg} ${
+                isActive ? card.activeBorder : `${card.defaultBorder} hover:border-gray-300`
+              }`}
+            >
+              <card.Icon size={22} style={{ color: card.iconColor, marginBottom: '6px' }} />
+              <div className="text-2xl font-bold" style={{ fontFamily: "'JetBrains Mono', monospace", color: card.iconColor }}>{counts[card.status] ?? 0}</div>
+              <div className="text-sm text-gray-500" style={{ fontFamily: "'Inter', sans-serif" }}>{card.label}</div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Filtros */}
@@ -153,8 +184,25 @@ export function HistoryTab({ farmId, demoMode }: Props) {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map(m => (
-                <tr key={m.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 font-medium">{m.females?.animal_id ?? '—'}</td>
+                <Fragment key={m.id}>
+                  <tr
+                    onClick={() => handleRowClick(m.id)}
+                  className={`hover:bg-gray-50 cursor-pointer select-none transition-all ${
+                    expandedRow === m.id ? 'bg-gray-50/80 font-medium' : ''
+                  }`}
+                >
+                  <td className="px-4 py-2 font-medium">
+                    <div className="flex items-center gap-1.5">
+                      <ChevronRight
+                        size={14}
+                        className="text-gray-400 transition-transform duration-150"
+                        style={{
+                          transform: expandedRow === m.id ? 'rotate(90deg)' : 'rotate(0deg)'
+                        }}
+                      />
+                      <span>{m.females?.animal_id ?? '—'}</span>
+                    </div>
+                  </td>
                   <td className="px-4 py-2 font-mono text-blue-dark">{m.bulls?.code ?? '—'}</td>
                   <td className="px-4 py-2 text-center">
                     <span style={{
@@ -181,64 +229,161 @@ export function HistoryTab({ farmId, demoMode }: Props) {
                       {m.is_sexed_semen ? 'Sexado' : 'Conv.'}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-center">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[m.status]}`}>
-                      {STATUS_LABELS[m.status]}
-                    </span>
+                  <td className="px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                    <select
+                      value={m.status}
+                      disabled={updating === m.id}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleStatusChange(m, e.target.value as MatingStatus);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold cursor-pointer border border-transparent focus:ring-1 focus:ring-[#1B3A5C] ${STATUS_COLORS[m.status]}`}
+                      style={{
+                        appearance: 'none',
+                        WebkitAppearance: 'none',
+                        paddingRight: '18px',
+                        backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E")`,
+                        backgroundPosition: 'right 4px center',
+                        backgroundSize: '10px 10px',
+                        backgroundRepeat: 'no-repeat',
+                      }}
+                    >
+                      <option value="planned">Planejado</option>
+                      <option value="executed">Executado</option>
+                      <option value="confirmed_pregnant">Prenha</option>
+                      <option value="failed">Falhou</option>
+                    </select>
                   </td>
                   <td className="px-4 py-2 text-center text-xs text-gray-500">
                     {new Date(m.created_at).toLocaleDateString('pt-BR')}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-center gap-1">
                       {m.status === 'planned' && (
                         <button
-                          onClick={() => updateStatus(m.id, 'executed')}
+                          onClick={(e) => { e.stopPropagation(); handleStatusChange(m, 'executed'); }}
                           disabled={updating === m.id}
                           title="Marcar como executado"
-                          className="p-1 text-amber-600 hover:bg-amber-50 rounded"
+                          className="p-1 text-amber-600 hover:bg-amber-50 rounded flex items-center justify-center"
                         >
                           <CheckCircle size={14} />
                         </button>
                       )}
                       {m.status === 'executed' && (
                         <button
-                          onClick={() => updateStatus(m.id, 'confirmed_pregnant')}
+                          onClick={(e) => { e.stopPropagation(); handleStatusChange(m, 'confirmed_pregnant'); }}
                           disabled={updating === m.id}
                           title="Confirmar prenhez"
-                          className="p-1 text-green-600 hover:bg-green-50 rounded"
+                          className="p-1 text-green-600 hover:bg-green-50 rounded flex items-center justify-center"
                         >
                           <Baby size={14} />
                         </button>
                       )}
                       {(m.status === 'planned' || m.status === 'executed') && (
                         <button
-                          onClick={() => updateStatus(m.id, 'failed')}
+                          onClick={(e) => { e.stopPropagation(); handleStatusChange(m, 'failed'); }}
                           disabled={updating === m.id}
                           title="Marcar como falhou"
-                          className="p-1 text-red-500 hover:bg-red-50 rounded"
+                          className="p-1 text-red-500 hover:bg-red-50 rounded flex items-center justify-center"
                         >
                           <XCircle size={14} />
                         </button>
                       )}
+                      {m.females && m.bulls && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setProgenieAberta(calcularIndicesProgenie(m.females as any, m.bulls as any));
+                          }}
+                          title="Ver Perfil da Progênie"
+                          className="p-1 text-blue-mid hover:bg-blue-50 rounded flex items-center justify-center"
+                        >
+                          <Dna size={14} />
+                        </button>
+                      )}
                       <button
-                        onClick={() => deleteMating(m.id)}
+                        onClick={(e) => { e.stopPropagation(); deleteMating(m.id); }}
                         disabled={updating === m.id}
                         title="Deletar"
-                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded ml-2"
+                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded flex items-center justify-center ml-2"
                       >
                         <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
+                {expandedRow === m.id && (
+                  <tr key={`${m.id}-detail`} className="bg-gray-50/40">
+                    <td colSpan={9} className="px-4 py-3 border-b border-gray-200" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 animate-slideDown">
+                        <div className="flex flex-wrap gap-4 text-xs">
+                          <div className="bg-white rounded border border-gray-200 px-3 py-1.5 shadow-sm">
+                            <span className="text-gray-400 block uppercase text-[10px]">TPI Progênie</span>
+                            <span className="font-bold text-gray-700">
+                              {(() => {
+                                const prog = m.females && m.bulls ? calcularIndicesProgenie(m.females as any, m.bulls as any) : null;
+                                return prog?.indices.tpi?.toFixed(0) ?? '—';
+                              })()}
+                            </span>
+                          </div>
+                          <div className="bg-white rounded border border-gray-200 px-3 py-1.5 shadow-sm">
+                            <span className="text-gray-400 block uppercase text-[10px]">NM$ Progênie</span>
+                            <span className="font-bold text-amber-700">
+                              {(() => {
+                                const prog = m.females && m.bulls ? calcularIndicesProgenie(m.females as any, m.bulls as any) : null;
+                                return prog?.indices.netMerit != null ? `$${prog.indices.netMerit.toFixed(0)}` : '—';
+                              })()}
+                            </span>
+                          </div>
+                          <div className="bg-white rounded border border-gray-200 px-3 py-1.5 shadow-sm">
+                            <span className="text-gray-400 block uppercase text-[10px]">Leite Progênie</span>
+                            <span className="font-bold text-gray-700">
+                              {(() => {
+                                const prog = m.females && m.bulls ? calcularIndicesProgenie(m.females as any, m.bulls as any) : null;
+                                return prog?.indices.milk != null ? `${prog.indices.milk.toFixed(0)} lbs` : '—';
+                              })()}
+                            </span>
+                          </div>
+                          <div className="bg-white rounded border border-gray-200 px-3 py-1.5 shadow-sm">
+                            <span className="text-gray-400 block uppercase text-[10px]">Inb%</span>
+                            <span className="font-bold text-blue-mid">
+                              {m.inbreeding_pct != null ? `${m.inbreeding_pct.toFixed(1)}%` : '—'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (m.females && m.bulls) {
+                              setProgenieAberta(calcularIndicesProgenie(m.females as any, m.bulls as any));
+                            }
+                          }}
+                          disabled={!m.females || !m.bulls}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-[#1B3A5C] text-white text-xs font-semibold rounded-lg hover:bg-blue-mid shadow-sm transition-all disabled:opacity-50"
+                        >
+                          <Dna size={14} /> Ver Perfil Completo da Progênie
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
             </tbody>
           </table>
           {filtered.length === 0 && (
             <div className="text-center py-10 text-gray-400 text-sm">Nenhum acasalamento registrado.</div>
           )}
         </div>
+      )}
+      {progenieAberta && (
+        <PerfilProgenieModal
+          isOpen={!!progenieAberta}
+          onClose={() => setProgenieAberta(null)}
+          {...progenieAberta}
+        />
       )}
     </div>
   );

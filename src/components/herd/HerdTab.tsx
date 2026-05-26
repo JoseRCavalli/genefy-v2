@@ -322,9 +322,9 @@ export function HerdTab({ females, femaleRows, allBulls, farmId, onUpsert, onDel
         const id = String(r['id']);
         const isNew = !existingIds.has(id);
         const parts = [];
-        if (r['milk'])      parts.push(`Leite: ${r['milk'] as number >= 0 ? '+' : ''}${r['milk']} lbs`);
-        if (r['net_merit']) parts.push(`NM$: $${r['net_merit']}`);
-        if (r['ginb'])      parts.push(`gINB: ${r['ginb']}%`);
+        if (r['milk'] != null)      parts.push(`Leite: ${r['milk'] as number >= 0 ? '+' : ''}${r['milk']} lbs`);
+        if (r['net_merit'] != null) parts.push(`NM$: $${r['net_merit']}`);
+        if (r['ginb'] != null)      parts.push(`gINB: ${r['ginb']}%`);
         return { id, isNew, summary: parts.join(' · ') };
       });
       setCsvPreview(preview);

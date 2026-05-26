@@ -35,6 +35,8 @@ const SECTIONS: Section[] = [
     indices: [
       { key: 'net_merit', label: 'Net Merit', unit: '$', hi: true, decimals: 0, prefix: '$' },
       { key: 'tpi',       label: 'TPI',       unit: 'pts', hi: true, decimals: 0 },
+      { key: 'cheese_merit', label: 'Mérito Queijo', unit: '$', hi: true, decimals: 0, prefix: '$' },
+      { key: 'fluid_merit',  label: 'Mérito Fluido', unit: '$', hi: true, decimals: 0, prefix: '$' },
       { key: 'gefi',      label: 'GEFI',      unit: '%', hi: false, decimals: 1 },
     ],
   },
@@ -43,7 +45,10 @@ const SECTIONS: Section[] = [
     indices: [
       { key: 'milk',    label: 'Leite',     unit: 'lbs', hi: true, decimals: 0 },
       { key: 'fat',     label: 'Gordura',   unit: 'lbs', hi: true, decimals: 1 },
+      { key: 'fat_pct', label: 'Gordura %', unit: '%',   hi: true, decimals: 2 },
       { key: 'protein', label: 'Proteína',  unit: 'lbs', hi: true, decimals: 1 },
+      { key: 'protein_pct', label: 'Proteína %', unit: '%', hi: true, decimals: 2 },
+      { key: 'feed_efficiency', label: 'Efic. Alimentar', unit: '$', hi: true, decimals: 0 },
     ],
   },
   {
@@ -51,17 +56,58 @@ const SECTIONS: Section[] = [
     indices: [
       { key: 'productive_life',  label: 'Vida Produtiva',  unit: 'meses', hi: true,  decimals: 1 },
       { key: 'scs',              label: 'SCS (Mastite)',    unit: '',      hi: false, decimals: 2 },
+      { key: 'mastitis',         label: 'Resist. Mastite',  unit: '',      hi: true,  decimals: 2 },
+      { key: 'health_index',     label: 'Índice de Saúde',  unit: '',      hi: true,  decimals: 1 },
+      { key: 'livability',       label: 'Sobrev. Vacas',    unit: '%',     hi: true,  decimals: 2 },
+      { key: 'heifer_livability', label: 'Sobrev. Novilhas', unit: '%',    hi: true,  decimals: 2 },
+    ],
+  },
+  {
+    title: 'Fertilidade',
+    indices: [
       { key: 'dpr',              label: 'DPR',              unit: '',      hi: true,  decimals: 1 },
       { key: 'hcr',              label: 'HCR',              unit: '%',     hi: true,  decimals: 1 },
       { key: 'ccr',              label: 'CCR',              unit: '%',     hi: true,  decimals: 1 },
       { key: 'fertility_index',  label: 'Fertilidade',      unit: '',      hi: true,  decimals: 1 },
+      { key: 'early_first_calving', label: 'Idade 1º Parto', unit: '',    hi: true,  decimals: 2 },
     ],
   },
   {
-    title: 'Conformação',
+    title: 'Parto',
     indices: [
-      { key: 'udc', label: 'UDC — Úbere',  unit: '', hi: true, decimals: 2 },
-      { key: 'flc', label: 'FLC — Pernas', unit: '', hi: true, decimals: 2 },
+      { key: 'sire_calving_ease',     label: 'Fac. Parto — Touro', unit: '%', hi: false, decimals: 2 },
+      { key: 'daughter_calving_ease',  label: 'Fac. Parto — Filha', unit: '%', hi: false, decimals: 2 },
+      { key: 'sire_stillbirth',        label: 'Natimorto — Touro',  unit: '%', hi: false, decimals: 2 },
+      { key: 'daughter_stillbirth',    label: 'Natimorto — Filha',  unit: '%', hi: false, decimals: 2 },
+    ],
+  },
+  {
+    title: 'Conformação — Compostos',
+    indices: [
+      { key: 'ptat', label: 'PTAT — Tipo',       unit: '', hi: true, decimals: 2 },
+      { key: 'udc',  label: 'UDC — Úbere',       unit: '', hi: true, decimals: 2 },
+      { key: 'flc',  label: 'FLC — Pernas',      unit: '', hi: true, decimals: 2 },
+      { key: 'bde',  label: 'BDE — Corporal',    unit: '', hi: true, decimals: 2 },
+      { key: 'dfm',  label: 'DFM — Leiteiro',    unit: '', hi: true, decimals: 2 },
+    ],
+  },
+  {
+    title: 'Conformação — Traits',
+    indices: [
+      { key: 'sta',     label: 'Estatura',               unit: '', hi: true, decimals: 2 },
+      { key: 'str_val', label: 'Força',                   unit: '', hi: true, decimals: 2 },
+      { key: 'fua',     label: 'Ins. Úbere Anterior',    unit: '', hi: true, decimals: 2 },
+      { key: 'ruh',     label: 'Alt. Úbere Posterior',   unit: '', hi: true, decimals: 2 },
+      { key: 'ruw',     label: 'Larg. Úbere Posterior',  unit: '', hi: true, decimals: 2 },
+      { key: 'ucl',     label: 'Ligamento Central',       unit: '', hi: true, decimals: 2 },
+      { key: 'udp',     label: 'Prof. Úbere',            unit: '', hi: true, decimals: 2 },
+      { key: 'fls',     label: 'Pernas Vista Lateral',    unit: '', hi: true, decimals: 2 },
+      { key: 'rls',     label: 'Pernas Vista Posterior',   unit: '', hi: true, decimals: 2 },
+      { key: 'fta',     label: 'Ângulo de Casco',        unit: '', hi: true, decimals: 2 },
+      { key: 'rpa',     label: 'Ângulo de Garupa',       unit: '', hi: true, decimals: 2 },
+      { key: 'tlg',     label: 'Tetos Anteriores',        unit: '', hi: true, decimals: 2 },
+      { key: 'trw',     label: 'Tetos Posteriores',       unit: '', hi: true, decimals: 2 },
+      { key: 'rlr',     label: 'Compr. de Tetos',        unit: '', hi: true, decimals: 2 },
     ],
   },
   {

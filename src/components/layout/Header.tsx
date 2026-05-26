@@ -25,7 +25,7 @@ export function Header({ farm, activeTab, onTabChange }: Props) {
       <div className="flex items-center gap-3 px-6 py-3 border-b border-white/10">
         <Dna size={28} className="text-[#C9A84C]" />
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Genefy v2</h1>
+          <h1 className="text-xl font-bold tracking-tight">Genefy</h1>
           <p className="text-xs text-white/60">
             {farm ? `${farm.name}` : 'Carregando...'}
           </p>
