@@ -542,16 +542,11 @@ function PerfilProgenieContent({ touro, indices, pedigree }: PerfilProgenieProps
             alignItems: 'center',
             gap: '8px',
           }}>
-            <span style={{ fontSize: '22px' }}>🧬</span>
-            <span style={{
-              fontFamily: FONT.header,
-              fontSize: '22px',
-              fontWeight: 700,
-              color: COLORS.darkBlue,
-              letterSpacing: '-0.01em',
-            }}>
-              Genefy
-            </span>
+            <img
+              src="/images/genefy-logo-white.png"
+              alt="Genefy"
+              style={{ height: '84px', width: 'auto', objectFit: 'contain' }}
+            />
           </div>
         </div>
 

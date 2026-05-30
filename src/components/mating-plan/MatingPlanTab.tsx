@@ -162,10 +162,13 @@ function generatePrintReport(
 <div class="page">
 
   <!-- Cabeçalho -->
-  <div class="header">
-    <div class="header-left">
-      <h1>🧬 Genefy v2 — Plano de Acasalamento</h1>
-      <h2>${farmName}</h2>
+  <div class="header" style="align-items: center;">
+    <div class="header-left" style="display: flex; align-items: center; gap: 12px;">
+      <img src="/images/genefy-logo-white.png" alt="Genefy" style="height: 96px; width: auto; object-fit: contain;" />
+      <div style="border-left: 1px solid #1B3A5C; padding-left: 12px;">
+        <h1 style="font-size: 14pt; color: #1B3A5C; font-weight: bold; margin: 0; line-height: 1.2;">Plano de Acasalamento</h1>
+        <h2 style="font-size: 10pt; color: #2E6DA4; margin-top: 2px; line-height: 1.2;">${farmName}</h2>
+      </div>
     </div>
     <div class="header-right">
       <p><strong>Data:</strong> ${date}</p>

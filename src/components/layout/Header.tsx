@@ -1,4 +1,3 @@
-import { Dna } from 'lucide-react';
 import type { FarmRow } from '../../lib/supabase';
 
 interface Props {
@@ -22,14 +21,15 @@ const TABS = [
 export function Header({ farm, activeTab, onTabChange }: Props) {
   return (
     <header className="bg-[#1B3A5C] text-white shadow-lg">
-      <div className="flex items-center gap-3 px-6 py-3 border-b border-white/10">
-        <Dna size={28} className="text-[#C9A84C]" />
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Genefy</h1>
-          <p className="text-xs text-white/60">
-            {farm ? `${farm.name}` : 'Carregando...'}
-          </p>
-        </div>
+      <div className="flex flex-col items-start px-6 py-3 border-b border-white/10">
+        <img
+          src="/images/genefy-logo-trimmed.png"
+          alt="Genefy"
+          style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
+        />
+        <span className="text-xs text-white/60 pl-1 mt-0.5">
+          {farm ? `${farm.name}` : 'Carregando...'}
+        </span>
       </div>
       <nav className="flex overflow-x-auto px-4">
         {TABS.map(tab => (
