@@ -75,6 +75,8 @@ export function useDemoBulls() {
     catalog: (b as { catalog?: string | null }).catalog ?? getBrandFromCode(b.code),
     is_custom: b._custom ?? false,
     source: b._custom ? 'MANUAL' : 'CDCB',
+    bull_type: (b as { bull_type?: string | null }).bull_type ?? 'dairy',
+    beef_traits: (b as { beef_traits?: Record<string, number> | null }).beef_traits ?? null,
     created_at: new Date().toISOString(),
   }));
 

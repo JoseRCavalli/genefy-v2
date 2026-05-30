@@ -8,6 +8,8 @@ type MatchResult = { bull: Bull; inbreeding: number; score: number; carriers: st
 import { supabase } from '../../lib/supabase';
 import type { FemaleRow, BullRow } from '../../lib/supabase';
 import { BullOptionCard } from '../matching/BullOptionCard';
+import type { FemaleAssignment } from '../../types/herd-strategy.types';
+import { GROUP_LABELS, GROUP_COLORS } from '../../types/herd-strategy.types';
 
 interface Props {
   females: Female[];
@@ -22,12 +24,14 @@ interface Props {
   bullRows: BullRow[];
   onReloadFemales: () => void;
   onTogglePrimiparous?: (rowId: string, value: boolean) => void;
+  assignments?: FemaleAssignment[];
 }
 
 export function PrimiparousTab({
   females, femaleRows, allBulls, tankBulls,
   weights, maxInb, a2a2Only, useRel,
   farmId, bullRows, onReloadFemales, onTogglePrimiparous,
+  assignments,
 }: Props) {
   const [sexedMap, setSexedMap] = useState<Record<string, boolean>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -150,7 +154,21 @@ export function PrimiparousTab({
             return (
               <div key={female.id} className="bg-white rounded-xl border border-gray-200 p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-bold text-blue-dark">{female.id}</h4>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="font-bold text-blue-dark">{female.id}</h4>
+                    {(() => {
+                      const a = assignments?.find((item) => item.female_id === female.id);
+                      if (!a) return null;
+                      const colors = GROUP_COLORS[a.assignment_group];
+                      const label = GROUP_LABELS[a.assignment_group];
+                      if (!colors || !label) return null;
+                      return (
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${colors.bg} ${colors.text} ${colors.border}`}>
+                          {label}
+                        </span>
+                      );
+                    })()}
+                  </div>
                   <div className="flex items-center gap-3 text-sm">
                     <span className="text-gray-500">Tipo de sêmen:</span>
                     <button

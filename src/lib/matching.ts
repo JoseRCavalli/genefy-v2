@@ -9,10 +9,12 @@ export {
   searchByGoal,
   estimateCowPtas,
   calcCowRel,
+  calculateFemaleMeritScore,
   ICFG,
   BREED_SD,
   PRESETS,
 } from './genetics';
+
 
 export type {
   Bull,

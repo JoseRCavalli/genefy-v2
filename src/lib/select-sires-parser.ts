@@ -186,6 +186,8 @@ export function parseSelectSiresCSV(csvText: string): SelectSiresBull[] {
       is_custom: true,
       source: 'select_sires',
       feed_saved: null,
+      bull_type: 'dairy',
+      beef_traits: null,
       _matched: true,
     });
   }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Header } from '../components/layout/Header';
 import { Sidebar } from '../components/layout/Sidebar';
 import { MatchingTab } from '../components/matching/MatchingTab';
@@ -10,6 +10,8 @@ import { HerdTab } from '../components/herd/HerdTab';
 import { FemalesCatalogTab } from '../components/catalog/FemalesCatalogTab';
 import { MetaSearchTab } from '../components/meta-search/MetaSearchTab';
 import { HistoryTab } from '../components/history/HistoryTab';
+import { HerdStrategyTab } from '../components/herd-strategy/HerdStrategyTab';
+import { useHerdStrategy } from '../hooks/useHerdStrategy';
 
 import { useFarm } from '../hooks/useFarm';
 import { useBulls } from '../hooks/useBulls';
@@ -33,13 +35,30 @@ function DemoApp() {
   const [a2a2Only, setA2a2Only] = useState(false);
   const [tankOnly, setTankOnly] = useState(false);
   const [useRel, setUseRel] = useState(true);
+  const [bullTypeFilter, setBullTypeFilter] = useState('all');
 
   const { bulls, bullRows, addCustomBull, updateBullPrice } = useDemoBulls();
   const { females, femaleRows, reload: reloadFemales, upsertFemale, setPrimiparous, deleteFemale } = useDemoFemales();
   const { tank, tankBulls, addToTank, removeFromTank, updateTankEntry } = useDemoTank(bulls);
   const { weights, setWeights, presets, activePreset, setActivePreset, applyPreset, savePreset } = useDemoWeights();
 
+  const filteredBulls = useMemo(() => {
+    if (bullTypeFilter === 'all') return bulls;
+    return bulls.filter(b => (b.bull_type || 'dairy') === bullTypeFilter);
+  }, [bulls, bullTypeFilter]);
+
+  const filteredTankBulls = useMemo(() => {
+    if (bullTypeFilter === 'all') return tankBulls;
+    return tankBulls.filter(b => (b.bull_type || 'dairy') === bullTypeFilter);
+  }, [tankBulls, bullTypeFilter]);
+
+  const filteredTank = useMemo(() => {
+    if (bullTypeFilter === 'all') return tank;
+    return tank.filter(t => (t.bull.bull_type || 'dairy') === bullTypeFilter);
+  }, [tank, bullTypeFilter]);
+
   const farm = DEMO_FARM;
+  const { assignments } = useHerdStrategy(farm.id, females, femaleRows, weights);
 
   function handleApplyPreset(name: string) {
     if (name === 'Personalizado') { setActivePreset('Personalizado'); return; }
@@ -61,8 +80,8 @@ function DemoApp() {
           selectedFemale={selectedFemale}
           onSelectFemale={setSelectedFemale}
           allBulls={bulls}
-          tank={tank}
-          tankBulls={tankBulls}
+          tank={filteredTank}
+          tankBulls={filteredTankBulls}
           farmId={farm.id}
           onAddToTank={(bullCode, doses, price) => addToTank(farm.id, bullCode, doses, price)}
           onRemoveFromTank={removeFromTank}
@@ -82,14 +101,16 @@ function DemoApp() {
           onTankOnlyChange={setTankOnly}
           useRel={useRel}
           onUseRelChange={setUseRel}
+          bullTypeFilter={bullTypeFilter}
+          onBullTypeFilterChange={setBullTypeFilter}
         />
 
         <main className="flex-1 overflow-y-auto">
           {activeTab === 'matching' && (
             <MatchingTab
               female={selectedFemale}
-              allBulls={bulls}
-              tankBulls={tankBulls}
+              allBulls={filteredBulls}
+              tankBulls={filteredTankBulls}
               weights={weights}
               maxInb={maxInb}
               a2a2Only={a2a2Only}
@@ -99,14 +120,15 @@ function DemoApp() {
               bullRows={bullRows}
               femaleRows={femaleRows}
               onNavigate={setActiveTab}
+              assignments={assignments}
             />
           )}
           {activeTab === 'mating-plan' && (
             <MatingPlanTab
               females={females}
-              allBulls={bulls}
-              tankBulls={tankBulls}
-              tank={tank}
+              allBulls={filteredBulls}
+              tankBulls={filteredTankBulls}
+              tank={filteredTank}
               weights={weights}
               maxInb={maxInb}
               a2a2Only={a2a2Only}
@@ -122,9 +144,9 @@ function DemoApp() {
           {activeTab === 'full-analysis' && (
             <FullAnalysisTab
               females={females}
-              allBulls={bulls}
-              tankBulls={tankBulls}
-              tank={tank}
+              allBulls={filteredBulls}
+              tankBulls={filteredTankBulls}
+              tank={filteredTank}
               weights={weights}
               maxInb={maxInb}
               a2a2Only={a2a2Only}
@@ -137,8 +159,8 @@ function DemoApp() {
             <PrimiparousTab
               females={females}
               femaleRows={femaleRows}
-              allBulls={bulls}
-              tankBulls={tankBulls}
+              allBulls={filteredBulls}
+              tankBulls={filteredTankBulls}
               weights={weights}
               maxInb={maxInb}
               a2a2Only={a2a2Only}
@@ -147,6 +169,16 @@ function DemoApp() {
               bullRows={bullRows}
               onReloadFemales={reloadFemales}
               onTogglePrimiparous={setPrimiparous}
+              assignments={assignments}
+            />
+          )}
+          {activeTab === 'herd-strategy' && (
+            <HerdStrategyTab
+              females={females}
+              femaleRows={femaleRows}
+              allBulls={filteredBulls}
+              weights={weights}
+              farmId={farm.id}
             />
           )}
           {activeTab === 'catalog' && (
@@ -204,12 +236,29 @@ function SupabaseApp() {
   const [a2a2Only, setA2a2Only] = useState(false);
   const [tankOnly, setTankOnly] = useState(false);
   const [useRel, setUseRel] = useState(true);
+  const [bullTypeFilter, setBullTypeFilter] = useState('all');
 
   const { farm, loading: farmLoading } = useFarm();
   const { bulls, bullRows, addCustomBull, updateBullPrice } = useBulls(farm?.id);
   const { females, femaleRows, reload: reloadFemales, upsertFemale, setPrimiparous, deleteFemale } = useFemales(farm?.id);
   const { tank, tankBulls, addToTank, removeFromTank, updateTankEntry } = useTank(farm?.id, bulls);
   const { weights, setWeights, presets, activePreset, setActivePreset, applyPreset, savePreset } = useWeights(farm?.id);
+  const { assignments } = useHerdStrategy(farm?.id, females, femaleRows, weights);
+
+  const filteredBulls = useMemo(() => {
+    if (bullTypeFilter === 'all') return bulls;
+    return bulls.filter(b => (b.bull_type || 'dairy') === bullTypeFilter);
+  }, [bulls, bullTypeFilter]);
+
+  const filteredTankBulls = useMemo(() => {
+    if (bullTypeFilter === 'all') return tankBulls;
+    return tankBulls.filter(b => (b.bull_type || 'dairy') === bullTypeFilter);
+  }, [tankBulls, bullTypeFilter]);
+
+  const filteredTank = useMemo(() => {
+    if (bullTypeFilter === 'all') return tank;
+    return tank.filter(t => (t.bull.bull_type || 'dairy') === bullTypeFilter);
+  }, [tank, bullTypeFilter]);
 
   function handleApplyPreset(name: string) {
     if (name === 'Personalizado') { setActivePreset('Personalizado'); return; }
@@ -243,8 +292,8 @@ function SupabaseApp() {
           selectedFemale={selectedFemale}
           onSelectFemale={setSelectedFemale}
           allBulls={bulls}
-          tank={tank}
-          tankBulls={tankBulls}
+          tank={filteredTank}
+          tankBulls={filteredTankBulls}
           farmId={farm.id}
           onAddToTank={(bullDbId, doses, price) => addToTank(farm.id, bullDbId, doses, price)}
           onRemoveFromTank={removeFromTank}
@@ -264,13 +313,15 @@ function SupabaseApp() {
           onTankOnlyChange={setTankOnly}
           useRel={useRel}
           onUseRelChange={setUseRel}
+          bullTypeFilter={bullTypeFilter}
+          onBullTypeFilterChange={setBullTypeFilter}
         />
         <main className="flex-1 overflow-y-auto">
           {activeTab === 'matching' && (
             <MatchingTab
               female={selectedFemale}
-              allBulls={bulls}
-              tankBulls={tankBulls}
+              allBulls={filteredBulls}
+              tankBulls={filteredTankBulls}
               weights={weights}
               maxInb={maxInb}
               a2a2Only={a2a2Only}
@@ -280,14 +331,15 @@ function SupabaseApp() {
               bullRows={bullRows}
               femaleRows={femaleRows}
               onNavigate={setActiveTab}
+              assignments={assignments}
             />
           )}
           {activeTab === 'mating-plan' && (
             <MatingPlanTab
               females={females}
-              allBulls={bulls}
-              tankBulls={tankBulls}
-              tank={tank}
+              allBulls={filteredBulls}
+              tankBulls={filteredTankBulls}
+              tank={filteredTank}
               weights={weights}
               maxInb={maxInb}
               a2a2Only={a2a2Only}
@@ -303,9 +355,9 @@ function SupabaseApp() {
           {activeTab === 'full-analysis' && (
             <FullAnalysisTab
               females={females}
-              allBulls={bulls}
-              tankBulls={tankBulls}
-              tank={tank}
+              allBulls={filteredBulls}
+              tankBulls={filteredTankBulls}
+              tank={filteredTank}
               weights={weights}
               maxInb={maxInb}
               a2a2Only={a2a2Only}
@@ -318,8 +370,8 @@ function SupabaseApp() {
             <PrimiparousTab
               females={females}
               femaleRows={femaleRows}
-              allBulls={bulls}
-              tankBulls={tankBulls}
+              allBulls={filteredBulls}
+              tankBulls={filteredTankBulls}
               weights={weights}
               maxInb={maxInb}
               a2a2Only={a2a2Only}
@@ -327,6 +379,16 @@ function SupabaseApp() {
               farmId={farm.id}
               bullRows={bullRows}
               onReloadFemales={reloadFemales}
+              assignments={assignments}
+            />
+          )}
+          {activeTab === 'herd-strategy' && (
+            <HerdStrategyTab
+              females={females}
+              femaleRows={femaleRows}
+              allBulls={filteredBulls}
+              weights={weights}
+              farmId={farm.id}
             />
           )}
           {activeTab === 'catalog' && (

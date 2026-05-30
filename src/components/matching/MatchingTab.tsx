@@ -7,6 +7,9 @@ import { BullOptionCard } from './BullOptionCard';
 import type { BullRow, FemaleRow } from '../../lib/supabase';
 import { ensureBullInDb } from '../../hooks/useTank';
 
+import type { FemaleAssignment } from '../../types/herd-strategy.types';
+import { GROUP_LABELS, GROUP_COLORS } from '../../types/herd-strategy.types';
+
 type MatchOption = ReturnType<typeof getTop3Options>[number];
 
 interface Props {
@@ -22,12 +25,14 @@ interface Props {
   bullRows: BullRow[];
   femaleRows: FemaleRow[];
   onNavigate?: (tab: string) => void;
+  assignments?: FemaleAssignment[];
 }
 
 export function MatchingTab({
   female, allBulls, tankBulls, weights,
   maxInb, a2a2Only, tankOnly, useRel,
   farmId, bullRows, femaleRows, onNavigate,
+  assignments,
 }: Props) {
   const [saved, setSaved] = useState<string[]>([]);
   const [catalogFilter, setCatalogFilter] = useState('');
@@ -96,8 +101,20 @@ export function MatchingTab({
   return (
     <div className="p-6 space-y-4 max-w-2xl mx-auto">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-bold text-blue-dark">
+        <h2 className="text-lg font-bold text-blue-dark flex items-center gap-2 flex-wrap">
           Matching — <span className="text-blue-mid">{female.id}</span>
+          {(() => {
+            const a = assignments?.find((item) => item.female_id === female.id);
+            if (!a) return null;
+            const colors = GROUP_COLORS[a.assignment_group];
+            const label = GROUP_LABELS[a.assignment_group];
+            if (!colors || !label) return null;
+            return (
+              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${colors.bg} ${colors.text} ${colors.border}`}>
+                {label}
+              </span>
+            );
+          })()}
         </h2>
         <select
           value={catalogFilter}

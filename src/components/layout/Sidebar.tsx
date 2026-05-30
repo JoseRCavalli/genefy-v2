@@ -34,6 +34,8 @@ interface Props {
   onTankOnlyChange: (v: boolean) => void;
   useRel: boolean;
   onUseRelChange: (v: boolean) => void;
+  bullTypeFilter: string;
+  onBullTypeFilterChange: (v: string) => void;
 }
 
 const WEIGHT_KEYS: { key: keyof WeightMap; label: string }[] = [
@@ -102,11 +104,21 @@ function TankEntryRow({
     <div className="flex flex-col gap-0.5 p-1.5 bg-gray-50 rounded text-xs">
       {/* Linha 1: nome + badge de doses + lixeira */}
       <div className="flex items-center gap-1">
-        <div className="flex-1 min-w-0 truncate">
+        <div className="flex-1 min-w-0 truncate flex items-center flex-wrap gap-1">
           <span className="font-medium">{entry.bull.code}</span>
           {(entry.bull.name ?? entry.bull.short_name) && (
-            <span className="ml-1 text-gray-400 text-[10px]">
+            <span className="text-gray-400 text-[10px] truncate max-w-[80px]">
               · {entry.bull.name ?? entry.bull.short_name}
+            </span>
+          )}
+          {entry.bull.bull_type === 'beef_on_dairy' && (
+            <span className="px-1 bg-red-50 text-red-600 border border-red-100 text-[8px] font-extrabold rounded leading-tight">
+              B.o.D
+            </span>
+          )}
+          {entry.bull.bull_type === 'beef' && (
+            <span className="px-1 bg-red-100 text-red-700 border border-red-200 text-[8px] font-extrabold rounded leading-tight">
+              CORTE
             </span>
           )}
         </div>
@@ -148,6 +160,7 @@ export function Sidebar({
   weights, onWeightsChange, activePreset, onApplyPreset, onSavePreset, customPresets,
   maxInb, onMaxInbChange, a2a2Only, onA2a2Change,
   tankOnly, onTankOnlyChange, useRel, onUseRelChange,
+  bullTypeFilter, onBullTypeFilterChange,
 }: Props) {
   const [femaleSearch, setFemaleSearch] = useState('');
   const [showFemaleList, setShowFemaleList] = useState(false);
@@ -404,6 +417,52 @@ export function Sidebar({
             <input type="checkbox" checked={useRel} onChange={e => onUseRelChange(e.target.checked)} className="accent-blue-mid" />
             <span className="text-xs">Usar REL%</span>
           </label>
+
+          <div className="pt-2 border-t border-gray-100">
+            <span className="block text-[10px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">Tipo de Touro</span>
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-xs">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name="bull_type_filter"
+                  checked={bullTypeFilter === 'all'}
+                  onChange={() => onBullTypeFilterChange('all')}
+                  className="accent-blue-mid"
+                />
+                <span>Todos</span>
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name="bull_type_filter"
+                  checked={bullTypeFilter === 'dairy'}
+                  onChange={() => onBullTypeFilterChange('dairy')}
+                  className="accent-blue-mid"
+                />
+                <span>Leite</span>
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name="bull_type_filter"
+                  checked={bullTypeFilter === 'beef_on_dairy'}
+                  onChange={() => onBullTypeFilterChange('beef_on_dairy')}
+                  className="accent-blue-mid"
+                />
+                <span>B.o.D.</span>
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name="bull_type_filter"
+                  checked={bullTypeFilter === 'beef'}
+                  onChange={() => onBullTypeFilterChange('beef')}
+                  className="accent-blue-mid"
+                />
+                <span>Corte</span>
+              </label>
+            </div>
+          </div>
         </div>
       </section>
 

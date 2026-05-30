@@ -11,6 +11,7 @@ const TABS = [
   { id: 'mating-plan', label: 'Plano de Acasalamento' },
   { id: 'full-analysis', label: 'Análise Completa' },
   { id: 'primiparous', label: 'Primíparas' },
+  { id: 'herd-strategy', label: 'Estratégia de Rebanho' },
   { id: 'catalog', label: 'Catálogo de Touros' },
   { id: 'females-catalog', label: 'Catálogo de Fêmeas' },
   { id: 'herd', label: 'Rebanho' },

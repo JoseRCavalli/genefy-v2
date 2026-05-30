@@ -53,6 +53,8 @@ export interface Bull {
   // Nova propriedade para v2
   price_per_dose?: number | null;
   catalog?: string | null;
+  bull_type?: string | null;
+  beef_traits?: { birth_ease: number; weaning_weight: number; carcass_quality: number } | null;
   // Index signature para acesso dinâmico em genetics.ts
   [key: string]: unknown;
 }
@@ -844,4 +846,28 @@ export function monthsToBreeding(bdate: string | null): number | null {
   target.setMonth(target.getMonth() + 26);
   const now = new Date();
   return Math.round((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30.5));
+}
+
+/**
+ * Calcula o score de merito composto de uma FEMEA
+ * Usa as mesmas PTAs da vaca e os mesmos pesos do preset ativo
+ * para criar um ranking interno do rebanho.
+ *
+ * Reutiliza norm() e ICFG para normalizar os indices da femea,
+ * e aplica o fator de confiabilidade via calcCowRel().
+ */
+export function calculateFemaleMeritScore(
+  female: Female,
+  W: WeightMap
+): number {
+  let s = 0, tw = 0;
+  for (const [k, w] of Object.entries(W)) {
+    if (!w || w <= 0) continue;
+    const val = (female as Record<string, unknown>)[k] as number | null;
+    s += norm(val, k) * w;
+    tw += w;
+  }
+  const base = tw > 0 ? s / tw : 0;
+  const rel = calcCowRel(female);
+  return parseFloat((base * (0.5 + 0.5 * rel)).toFixed(1));
 }

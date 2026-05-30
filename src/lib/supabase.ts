@@ -51,6 +51,8 @@ export interface BullRow {
   catalog: string | null;
   is_custom: boolean;
   source: string;
+  bull_type?: string;
+  beef_traits?: Record<string, number> | null;
   created_at: string;
 }
 
@@ -168,4 +170,43 @@ export interface WeightPresetRow {
   name: string;
   weights: Record<string, number>;
   created_at: string;
+}
+
+export interface HerdStrategyRow {
+  id: string;
+  farm_id: string;
+  total_cows: number;
+  current_daily_milk_liters: number;
+  target_daily_milk_liters: number;
+  replacement_rate_pct: number;
+  calf_mortality_pct: number;
+  heifer_mortality_pct: number;
+  cow_mortality_pct: number;
+  conception_rate_pct: number;
+  calving_interval_days: number;
+  age_first_calving_months: number;
+  milk_price_per_liter: number;
+  heifer_sale_price: number;
+  beef_calf_sale_price: number;
+  dairy_calf_sale_price: number;
+  heifer_raising_cost: number;
+  elite_percentile: number;
+  mid_percentile: number;
+  max_sexed_inseminations: number;
+  semen_costs: Record<string, number>;
+  updated_at: string;
+}
+
+export interface FemaleAssignmentRow {
+  id: string;
+  farm_id: string;
+  female_id: string;
+  assignment_group: string;
+  merit_rank: number | null;
+  merit_percentile: number | null;
+  composite_merit_score: number | null;
+  recommended_semen_type: string | null;
+  insemination_order: number;
+  economic_value_brl: number | null;
+  calculated_at: string;
 }
