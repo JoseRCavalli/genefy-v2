@@ -26,6 +26,7 @@ import {
 
 export function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Smooth scroll helper
   const handleScroll = (id: string) => {
@@ -35,6 +36,16 @@ export function LandingPage() {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  // Scroll listener for header transparency
+  useEffect(() => {
+    const handleScrollEvent = () => {
+      setIsScrolled(window.scrollY > 60);
+    };
+    window.addEventListener('scroll', handleScrollEvent, { passive: true });
+    handleScrollEvent(); // Check initial position
+    return () => window.removeEventListener('scroll', handleScrollEvent);
+  }, []);
 
   // Intersection Observer for reveal animations
   useEffect(() => {
@@ -234,20 +245,23 @@ export function LandingPage() {
       )}
 
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center pt-20 overflow-hidden">
+      <section className="relative flex items-center overflow-hidden min-h-[500px]" style={{ aspectRatio: '16/9' }}>
         <div className="absolute inset-0 z-0 overflow-hidden">
           <img
-            className="w-full h-full object-cover object-[80%_35%] animate-ken-burns"
-            alt="A cinematic close-up of a majestic dairy cow in a sun-drenched green pasture at dawn."
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuACRE6jXKAQP944X7JgVgm7k2FBtJMYaFRs40AamCgmBaAX4Msj2fgKaLZe0IDW5PvFl47wJFFJUDaDaz_Btb4m3HupQI5vtwWcYa9-IiNnzaQJ0aA0eq1q-On-HR_YpP2QTtu_tnVXcisrLI02_avgCb-T4IWuIW6yn1lGEZ872FaziP63EMG_FBKmAa2b6tT7bRhOmPNQ3c1JDIocjXgs3TnItNuKv-j0QpF0VVMfhM2E8zBk48PpdmaMizD3043gFxC9HRmiIIQ=w1920"
+            className="w-full h-full object-cover object-center animate-ken-burns"
+            alt="Vaca holandesa em pasto verde ao amanhecer"
+            src="/images/hero-cow.jpg"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/80 via-primary/40 to-transparent"></div>
+          {/* Gradient overlay — lateral coverage */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/85 via-primary/40 to-transparent"></div>
+          {/* Gradient overlay — top coverage (fuses with transparent navbar) */}
+          <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-primary/60"></div>
         </div>
         
         {/* Ambient Particle Overlay */}
-        <canvas id="particle-canvas"></canvas>
+        <canvas id="particle-canvas" className="absolute inset-0 z-0"></canvas>
 
-        <div className="relative z-10 px-margin-mobile md:px-margin-desktop max-w-[1440px] mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-gutter">
+        <div className="relative z-10 px-margin-mobile md:px-margin-desktop max-w-[1440px] mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-gutter py-[10vw] pt-28">
           <div className="md:col-span-8 lg:col-span-6 reveal animate-float">
             <span className="inline-flex items-center gap-2 px-3 py-1 bg-tertiary-container text-on-tertiary-fixed rounded-full text-label-sm font-label-sm mb-md">
               <Dna className="w-4 h-4" />

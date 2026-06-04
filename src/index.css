@@ -114,6 +114,13 @@
     z-index: 5;
 }
 
+/* Hero Image Natural Proportions */
+.hero-img {
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    object-position: center center;
+}
+
 /* Reduced Motion Accessibility */
 @media (prefers-reduced-motion: reduce) {
     .animate-ken-burns, 
