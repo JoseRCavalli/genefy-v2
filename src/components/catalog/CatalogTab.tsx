@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Plus, X, BarChart2 } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Plus, X, BarChart2, Sliders } from 'lucide-react';
 import type { Bull } from '../../lib/matching';
 import { getCarrierHaplotypes, fmt } from '../../lib/matching';
 import type { BullRow } from '../../lib/supabase';
@@ -12,6 +12,7 @@ interface Props {
   farmId: string;
   onUpdatePrice: (code: string, price: number) => Promise<unknown>;
   onAddBull: (farmId: string, bull: Omit<BullRow, 'id' | 'created_at' | 'farm_id'>) => Promise<unknown>;
+  onUpsertBull?: (farmId: string, bull: Partial<BullRow> & { code: string }) => Promise<unknown>;
 }
 
 const HH_OPTIONS = [
@@ -35,7 +36,7 @@ type FormKey = keyof typeof EMPTY_FORM;
 
 function numOrNull(v: string) { return v.trim() === '' ? null : parseFloat(v); }
 
-export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePrice, onAddBull }: Props) {
+export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePrice, onAddBull, onUpsertBull }: Props) {
   const [search, setSearch] = useState('');
   const [tankOnly, setTankOnly] = useState(false);
   const [a2a2Only, setA2a2Only] = useState(false);
@@ -49,6 +50,7 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [profileBull, setProfileBull] = useState<Bull | null>(null);
+  const [editingBullCode, setEditingBullCode] = useState<string | null>(null);
 
   const tankCodes = new Set(tankBulls.map(b => b.code));
 
@@ -88,15 +90,57 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
     setEditingPrice(null);
   }
 
+  function handleStartEditBull(bull: Bull) {
+    setEditingBullCode(bull.code);
+    setForm({
+      code: bull.code,
+      short_name: bull.name ?? bull.short_name ?? '',
+      full_name: bull.full_name ?? '',
+      gtpi: bull.gtpi != null ? String(bull.gtpi) : '',
+      net_merit: bull.net_merit != null ? String(bull.net_merit) : '',
+      milk: bull.milk != null ? String(bull.milk) : '',
+      protein: bull.protein != null ? String(bull.protein) : '',
+      fat: bull.fat != null ? String(bull.fat) : '',
+      productive_life: bull.productive_life != null ? String(bull.productive_life) : '',
+      scs: bull.scs != null ? String(bull.scs) : '',
+      dpr: bull.dpr != null ? String(bull.dpr) : '',
+      hcr: bull.hcr != null ? String(bull.hcr) : '',
+      ccr: bull.ccr != null ? String(bull.ccr) : '',
+      fertility_index: bull.fertility_index != null ? String(bull.fertility_index) : '',
+      ptat: bull.ptat != null ? String(bull.ptat) : '',
+      udc: bull.udc != null ? String(bull.udc) : '',
+      flc: bull.flc != null ? String(bull.flc) : '',
+      feed_saved: bull.feed_saved != null ? String(bull.feed_saved) : '',
+      gfi: bull.gfi != null ? String(bull.gfi) : '',
+      cow_livability: bull.cow_livability != null ? String(bull.cow_livability) : '',
+      sire_calving_ease: bull.sire_calving_ease != null ? String(bull.sire_calving_ease) : '',
+      reliability: bull.reliability != null ? String(bull.reliability) : '',
+      price_per_dose: bull.price_per_dose != null ? String(bull.price_per_dose) : '',
+      beta_casein: bull.beta_casein ?? '',
+      kappa_casein: bull.kappa_casein ?? '',
+      hh1: bull.HH1 || 'Free',
+      hh2: bull.HH2 || 'Free',
+      hh3: bull.HH3 || 'Free',
+      hh4: bull.HH4 || 'Free',
+      hh5: bull.HH5 || 'Free',
+      hh6: bull.HH6 || 'Free',
+    });
+    setFormError('');
+    setShowModal(true);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.code.trim()) { setFormError('Código NAAB é obrigatório.'); return; }
     if (!form.gtpi.trim()) { setFormError('GTPI é obrigatório.'); return; }
-    const existing = allBulls.find(b => b.code === form.code.trim());
-    if (existing) { setFormError(`Código ${form.code} já existe no catálogo.`); return; }
+
+    if (!editingBullCode) {
+      const existing = allBulls.find(b => b.code === form.code.trim().toUpperCase());
+      if (existing) { setFormError(`Código ${form.code} já existe no catálogo.`); return; }
+    }
 
     setSaving(true);
-    const err = await onAddBull(farmId, {
+    const bullData = {
       code: form.code.trim().toUpperCase(),
       short_name: form.short_name || null,
       full_name: form.full_name || null,
@@ -128,15 +172,29 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
       hh5: form.hh5 || 'Free',
       hh6: form.hh6 || 'Free',
       price_per_dose: numOrNull(form.price_per_dose),
-      catalog: null,
+      catalog: editingBullCode ? (allBulls.find(b => b.code === editingBullCode)?.catalog ?? null) : null,
       is_custom: true,
-      source: 'MANUAL',
-    });
+      source: editingBullCode ? (allBulls.find(b => b.code === editingBullCode)?._custom ? 'MANUAL' : 'CDCB') : 'MANUAL',
+    };
+
+    let err;
+    if (editingBullCode) {
+      if (onUpsertBull) {
+        err = await onUpsertBull(farmId, bullData);
+      } else {
+        err = new Error("Função de atualização de touros não disponível.");
+      }
+    } else {
+      err = await onAddBull(farmId, bullData);
+    }
+
     setSaving(false);
-    if (err) { setFormError((err as { message: string }).message); return; }
+    if (err) { setFormError((err as { message: string }).message || String(err)); return; }
     setShowModal(false);
     setForm({ ...EMPTY_FORM });
+    setEditingBullCode(null);
   }
+
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-4">
@@ -144,7 +202,7 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
         <h2 className="text-lg font-bold text-blue-dark">Catálogo de Touros</h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { setShowModal(true); setForm({ ...EMPTY_FORM }); setFormError(''); }}
+            onClick={() => { setEditingBullCode(null); setShowModal(true); setForm({ ...EMPTY_FORM }); setFormError(''); }}
             className="flex items-center gap-2 px-4 py-2 bg-[#C9A84C] text-white text-sm rounded-lg hover:opacity-90"
           >
             <Plus size={14} /> Adicionar Touro
@@ -269,25 +327,46 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
                     </td>
                     {/* Ação */}
                     <td className="px-3 py-2 text-center" onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={() => setProfileBull(bull)}
-                        title="Ver índices completos"
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '4px',
-                          padding: '3px 8px', fontSize: '11px',
-                          fontFamily: "'Inter', sans-serif", fontWeight: 600,
-                          letterSpacing: '0.02em', color: '#1B3A5C',
-                          background: 'rgba(30,58,92,0.07)',
-                          border: '1px solid rgba(30,58,92,0.18)',
-                          borderRadius: '3px', cursor: 'pointer', whiteSpace: 'nowrap',
-                          transition: 'background 0.15s ease',
-                        }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(30,58,92,0.13)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(30,58,92,0.07)')}
-                      >
-                        <BarChart2 size={10} />
-                        Índices
-                      </button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => setProfileBull(bull)}
+                          title="Ver índices completos"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                            padding: '3px 8px', fontSize: '11px',
+                            fontFamily: "'Inter', sans-serif", fontWeight: 600,
+                            letterSpacing: '0.02em', color: '#1B3A5C',
+                            background: 'rgba(30,58,92,0.07)',
+                            border: '1px solid rgba(30,58,92,0.18)',
+                            borderRadius: '3px', cursor: 'pointer', whiteSpace: 'nowrap',
+                            transition: 'background 0.15s ease',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(30,58,92,0.13)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(30,58,92,0.07)')}
+                        >
+                          <BarChart2 size={10} />
+                          Índices
+                        </button>
+                        <button
+                          onClick={() => handleStartEditBull(bull)}
+                          title="Editar índices do touro"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                            padding: '3px 8px', fontSize: '11px',
+                            fontFamily: "'Inter', sans-serif", fontWeight: 600,
+                            letterSpacing: '0.02em', color: '#B45309',
+                            background: 'rgba(180,83,9,0.07)',
+                            border: '1px solid rgba(180,83,9,0.18)',
+                            borderRadius: '3px', cursor: 'pointer', whiteSpace: 'nowrap',
+                            transition: 'background 0.15s ease',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(180,83,9,0.13)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(180,83,9,0.07)')}
+                        >
+                          <Sliders size={10} />
+                          Editar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   {isExpanded && (
@@ -332,7 +411,9 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 className="text-base font-bold text-blue-dark">Adicionar Touro Manual</h3>
+              <h3 className="text-base font-bold text-blue-dark">
+                {editingBullCode ? `Editar Touro ${editingBullCode}` : 'Adicionar Touro Manual'}
+              </h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-700">
                 <X size={20} />
               </button>
@@ -347,7 +428,8 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
                     <label className="text-xs text-gray-500 mb-1 block">Código NAAB *</label>
                     <input value={form.code} onChange={e => setField('code', e.target.value)}
                       placeholder="7HO12345"
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:border-blue-mid text-sm font-mono" />
+                      disabled={!!editingBullCode}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:border-blue-mid text-sm font-mono disabled:bg-gray-100 disabled:text-gray-500" />
                   </div>
                   <div>
                     <label className="text-xs text-gray-500 mb-1 block">Nome curto</label>
@@ -465,7 +547,7 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
                   type="submit" disabled={saving}
                   className="flex-1 py-2.5 bg-[#C9A84C] text-white text-sm font-semibold rounded-lg hover:opacity-90 disabled:opacity-50"
                 >
-                  {saving ? 'Salvando…' : 'Salvar Touro'}
+                  {saving ? 'Salvando…' : editingBullCode ? 'Salvar Alterações' : 'Salvar Touro'}
                 </button>
                 <button
                   type="button" onClick={() => setShowModal(false)}

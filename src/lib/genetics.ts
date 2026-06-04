@@ -141,7 +141,10 @@ export interface Female {
   _rel?: number;
   // Nova propriedade para v2
   is_primiparous?: boolean;
+  categories?: string[];
+  notes?: string;
   // Index signature para acesso dinâmico em genetics.ts
+
   [key: string]: unknown;
 }
 

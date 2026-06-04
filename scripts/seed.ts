@@ -1,10 +1,31 @@
 import { createClient } from '@supabase/supabase-js';
 import { BASE_BULLS, BASE_FEMALES } from '../src/lib/data';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Carregar arquivo .env na raiz do projeto
+try {
+  process.loadEnvFile();
+} catch (e) {
+  // Ignora se o arquivo não existir ou se a versão do Node não suportar
+}
+
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl) {
+  console.error('\n❌ Erro: SUPABASE_URL ou VITE_SUPABASE_URL não encontrada nas variáveis de ambiente.');
+  console.error('Certifique-se de que o arquivo .env existe na raiz do projeto e contém a URL do seu projeto Supabase.\n');
+  process.exit(1);
+}
+
+if (!supabaseServiceKey) {
+  console.error('\n❌ Erro: SUPABASE_SERVICE_ROLE_KEY não encontrada no arquivo .env.');
+  console.error('Para rodar o seed e popular o banco de dados ignorando as regras de segurança (RLS),');
+  console.error('é necessário incluir a chave "service_role" do seu projeto no arquivo .env.');
+  console.error('Obtenha essa chave em: Supabase Dashboard -> Settings -> API -> service_role key.\n');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function seed() {
   console.log('🌱 Iniciando seed do Genefy v2...')  // 1. Obter todas as fazendas ou criar se nenhuma existir
@@ -149,6 +170,7 @@ async function seed() {
       age: f['age'] ?? null,
       genomic: false,
       is_primiparous: false,
+      categories: [],
     }));
 
     for (let i = 0; i < femalesForDb.length; i += 100) {

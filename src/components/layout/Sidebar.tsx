@@ -36,6 +36,8 @@ interface Props {
   onUseRelChange: (v: boolean) => void;
   bullTypeFilter: string;
   onBullTypeFilterChange: (v: string) => void;
+  selectedCategories: string[];
+  onSelectedCategoriesChange: (cats: string[]) => void;
 }
 
 const WEIGHT_KEYS: { key: keyof WeightMap; label: string }[] = [
@@ -161,6 +163,7 @@ export function Sidebar({
   maxInb, onMaxInbChange, a2a2Only, onA2a2Change,
   tankOnly, onTankOnlyChange, useRel, onUseRelChange,
   bullTypeFilter, onBullTypeFilterChange,
+  selectedCategories, onSelectedCategoriesChange,
 }: Props) {
   const [femaleSearch, setFemaleSearch] = useState('');
   const [showFemaleList, setShowFemaleList] = useState(false);
@@ -463,6 +466,44 @@ export function Sidebar({
               </label>
             </div>
           </div>
+
+          <div className="pt-2 border-t border-gray-100">
+            <span className="block text-[10px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">
+              Categoria de Destino (Fêmeas)
+            </span>
+            <div className="space-y-1.5">
+              {[
+                { id: 'sexed_premium', label: 'Sexado Premium', dotColor: 'bg-green-500' },
+                { id: 'sexed_budget', label: 'Sexado Econômico', dotColor: 'bg-blue-500' },
+                { id: 'conventional', label: 'Convencional', dotColor: 'bg-amber-500' },
+                { id: 'beef', label: 'Corte', dotColor: 'bg-red-500' },
+                { id: 'none', label: 'Sem categoria', dotColor: 'bg-gray-400' },
+              ].map(c => {
+                const checked = selectedCategories.includes(c.id);
+                return (
+                  <label key={c.id} className="flex items-center gap-2 cursor-pointer select-none text-xs">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        if (checked) {
+                          onSelectedCategoriesChange(selectedCategories.filter(x => x !== c.id));
+                        } else {
+                          onSelectedCategoriesChange([...selectedCategories, c.id]);
+                        }
+                      }}
+                      className="accent-blue-mid"
+                    />
+                    <span className="flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`} />
+                      {c.label}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
         </div>
       </section>
 

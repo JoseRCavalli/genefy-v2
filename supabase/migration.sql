@@ -45,4 +45,11 @@ ADD COLUMN IF NOT EXISTS mgs_name text,
 ADD COLUMN IF NOT EXISTS dam_reg text,
 ADD COLUMN IF NOT EXISTS dam_animal_id text,
 ADD COLUMN IF NOT EXISTS beta_casein text,
-ADD COLUMN IF NOT EXISTS kappa_casein text;
+ADD COLUMN IF NOT EXISTS kappa_casein text,
+ADD COLUMN IF NOT EXISTS categories text[] DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
+
+ALTER TABLE public.bulls DROP CONSTRAINT IF EXISTS bulls_code_key;
+ALTER TABLE public.bulls ADD CONSTRAINT bulls_farm_id_code_key UNIQUE (farm_id, code);
+
+

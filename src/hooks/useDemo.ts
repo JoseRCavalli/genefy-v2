@@ -2,7 +2,7 @@
  * Demo mode: runs entirely client-side using BASE_BULLS + BASE_FEMALES.
  * No Supabase required.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { BASE_FEMALES } from '../lib/data';
 import { CATALOG_BULLS } from '../lib/catalog-bulls';
 import { PRESETS } from '../lib/genetics';
@@ -36,7 +36,14 @@ function lsSet(key: string, val: unknown) {
 // ── Bulls ────────────────────────────────────────────────────────────────────
 export function useDemoBulls() {
   const [customBulls, setCustomBulls] = useState<Bull[]>([]);
-  const bulls: Bull[] = [...CATALOG_BULLS, ...customBulls];
+  const bulls: Bull[] = useMemo(() => {
+    const merged = CATALOG_BULLS.map(baseBull => {
+      const customOverride = customBulls.find(c => c.code === baseBull.code);
+      return customOverride ?? baseBull;
+    });
+    const customOnly = customBulls.filter(c => !CATALOG_BULLS.some(b => b.code === c.code));
+    return [...merged, ...customOnly];
+  }, [customBulls]);
 
   const bullRows: BullRow[] = bulls.map((b) => ({
     id: b.code,   // usar code como id para que useDemoTank receba o code diretamente
@@ -122,7 +129,52 @@ export function useDemoBulls() {
     return Promise.resolve(null);
   }
 
-  return { bulls, bullRows, loading: false, reload: () => {}, addCustomBull, updateBullPrice };
+  function upsertBull(_farmId: string, bull: Partial<BullRow> & { code: string }) {
+    setCustomBulls(v => {
+      const idx = v.findIndex(b => b.code === bull.code);
+      const newBull: Bull = {
+        code: bull.code,
+        name: bull.short_name ?? bull.code,
+        gtpi: bull.gtpi ?? undefined,
+        net_merit: bull.net_merit ?? undefined,
+        milk: bull.milk ?? undefined,
+        protein: bull.protein ?? undefined,
+        fat: bull.fat ?? undefined,
+        productive_life: bull.productive_life ?? undefined,
+        scs: bull.scs ?? undefined,
+        dpr: bull.dpr ?? undefined,
+        hcr: bull.hcr ?? undefined,
+        ccr: bull.ccr ?? undefined,
+        fertility_index: bull.fertility_index ?? undefined,
+        ptat: bull.ptat ?? undefined,
+        udc: bull.udc ?? undefined,
+        flc: bull.flc ?? undefined,
+        feed_saved: bull.feed_saved ?? undefined,
+        cow_livability: bull.cow_livability ?? undefined,
+        sire_calving_ease: bull.sire_calving_ease ?? undefined,
+        beta_casein: bull.beta_casein ?? undefined,
+        kappa_casein: bull.kappa_casein ?? undefined,
+        HH1: bull.hh1 || 'Free',
+        HH2: bull.hh2 || 'Free',
+        HH3: bull.hh3 || 'Free',
+        HH4: bull.hh4 || 'Free',
+        HH5: bull.hh5 || 'Free',
+        HH6: bull.hh6 || 'Free',
+        reliability: bull.reliability ?? undefined,
+        price_per_dose: bull.price_per_dose ?? undefined,
+        _custom: true,
+      };
+      if (idx >= 0) {
+        const next = [...v];
+        next[idx] = newBull;
+        return next;
+      }
+      return [...v, newBull];
+    });
+    return Promise.resolve(null);
+  }
+
+  return { bulls, bullRows, loading: false, reload: () => {}, addCustomBull, updateBullPrice, upsertBull };
 }
 
 // ── Females ──────────────────────────────────────────────────────────────────
@@ -203,12 +255,13 @@ export function useDemoFemales() {
       // Caseínas
       beta_casein: f.beta_casein ?? null,
       kappa_casein: f.kappa_casein ?? null,
-      // Metadata
+       // Metadata
       bdate: f.bdate ?? null,
       genomic: false,
       age: f.age ?? null,
       is_primiparous: false,
-      notes: null,
+      notes: '',
+      categories: [],
       created_at: new Date().toISOString(),
     }))
   );
@@ -228,6 +281,8 @@ export function useDemoFemales() {
       return [...rows, {
         id: `female-new-${Date.now()}`,
         farm_id: 'demo-farm',
+        categories: [],
+        notes: '',
         ...f,
       } as FemaleRow];
     });
@@ -244,8 +299,31 @@ export function useDemoFemales() {
     return Promise.resolve(null);
   }
 
-  return { females, femaleRows, loading: false, reload, upsertFemale, setPrimiparous, deleteFemale };
+  function updateFemaleCategories(dbId: string, categories: string[]) {
+    setFemaleRows(rows => rows.map(r => r.id === dbId ? { ...r, categories } : r));
+    return Promise.resolve(null);
+  }
+
+  function updateFemaleNotes(dbId: string, notes: string) {
+    setFemaleRows(rows => rows.map(r => r.id === dbId ? { ...r, notes } : r));
+    return Promise.resolve(null);
+  }
+
+  return {
+    females,
+    femaleRows,
+    catalogFemales: females,
+    catalogFemaleRows: femaleRows,
+    loading: false,
+    reload,
+    upsertFemale,
+    setPrimiparous,
+    deleteFemale,
+    updateFemaleCategories,
+    updateFemaleNotes
+  };
 }
+
 
 // ── Tank ─────────────────────────────────────────────────────────────────────
 export function useDemoTank(allBulls: Bull[]) {

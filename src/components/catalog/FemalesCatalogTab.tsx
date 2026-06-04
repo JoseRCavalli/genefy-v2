@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, ChevronDown, ChevronUp, Dna, Star, Users, BarChart2, MilkOff } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Dna, Star, Users, BarChart2, MilkOff, FileText } from 'lucide-react';
 import type { Female } from '../../lib/matching';
 import { fmt, calcCowRel, monthsToBreeding } from '../../lib/matching';
 import type { FemaleRow } from '../../lib/supabase';
@@ -381,8 +381,11 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
                           {row?.dam_id && (
                             <span>Mãe: <b>{row.dam_id}</b></span>
                           )}
-                          {row?.notes && (
-                            <span className="col-span-3 text-gray-500 italic">Obs: {row.notes}</span>
+                          {(row?.notes || f.notes) && (
+                            <div className="col-span-3 md:col-span-6 mt-2 pt-2 border-t border-gray-100 flex items-start gap-1.5 text-gray-400">
+                              <FileText size={13} className="shrink-0 mt-0.5" />
+                              <span className="leading-relaxed">{row?.notes || f.notes}</span>
+                            </div>
                           )}
                           <div className="col-span-3 md:col-span-6 mt-1 flex items-center gap-2 flex-wrap">
                             {f.genomic && (

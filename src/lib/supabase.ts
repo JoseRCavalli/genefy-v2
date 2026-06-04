@@ -134,6 +134,7 @@ export interface FemaleRow {
   beta_casein: string | null;
   kappa_casein: string | null;
   notes: string | null;
+  categories?: string[];
   created_at: string;
 }
 

@@ -115,7 +115,14 @@ export function useBulls(farmId: string | null | undefined) {
         created_at: new Date().toISOString(),
       }));
     setBullRows([...basePseudoRows, ...allRows]);
-    setBulls([...ALL_BASE_BULLS, ...custom]);
+    
+    const mergedBulls = ALL_BASE_BULLS.map(baseBull => {
+      const customOverride = custom.find(c => c.code === baseBull.code);
+      return customOverride ?? baseBull;
+    });
+    const customOnly = custom.filter(c => !ALL_BASE_BULLS.some(b => b.code === c.code));
+    setBulls([...mergedBulls, ...customOnly]);
+
     setLoading(false);
   }, [farmId]);
 
@@ -133,5 +140,13 @@ export function useBulls(farmId: string | null | undefined) {
     return error;
   }
 
-  return { bulls, bullRows, loading, reload, addCustomBull, updateBullPrice };
+  async function upsertBull(farmId: string, bull: Partial<BullRow> & { code: string }) {
+    const { error } = await supabase
+      .from('bulls')
+      .upsert({ ...bull, farm_id: farmId, is_custom: true }, { onConflict: 'farm_id,code' });
+    if (!error) reload();
+    return error;
+  }
+
+  return { bulls, bullRows, loading, reload, addCustomBull, updateBullPrice, upsertBull };
 }

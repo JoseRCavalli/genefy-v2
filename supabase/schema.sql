@@ -101,6 +101,7 @@ create table if not exists females (
   age integer,
   is_primiparous boolean default false,
   notes text,
+  categories text[] default '{}',
   created_at timestamptz default now(),
   unique(farm_id, animal_id)
 );
