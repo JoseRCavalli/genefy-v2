@@ -596,37 +596,37 @@ export function LandingPage() {
             {/* Screen 1 */}
             <div className="group relative rounded-2xl overflow-hidden shadow-lg aspect-video cursor-pointer bg-[#002444]">
               <img
-                alt="Classificação do Rebanho"
+                alt="Gerenciar Rebanho"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100"
-                src="/images/dashboard-classification.png"
+                src="/images/dashboard-gerenciar-rebanho.png"
               />
               <div className="absolute inset-0 bg-primary/85 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-md text-center">
-                <h4 className="text-white font-headline-md mb-2">Classificação do Rebanho</h4>
-                <p className="text-white/80 text-body-md">Classificação automática de mérito genético do rebanho e divisão de lotes para cruzamento.</p>
+                <h4 className="text-white font-headline-md mb-2">Gerenciar Rebanho</h4>
+                <p className="text-white/80 text-body-md">Visão detalhada de fêmeas cadastradas, filtragem por lactação, gINB e definição automática de lotes.</p>
               </div>
             </div>
             {/* Screen 2 */}
             <div className="group relative rounded-2xl overflow-hidden shadow-lg aspect-video cursor-pointer bg-[#002444]">
               <img
-                alt="Retorno Econômico"
+                alt="Margem Líquida Anual"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100"
-                src="/images/dashboard-economics.png"
+                src="/images/dashboard-margem-liquida.png"
               />
               <div className="absolute inset-0 bg-primary/85 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-md text-center">
-                <h4 className="text-white font-headline-md mb-2">Retorno Econômico</h4>
-                <p className="text-white/80 text-body-md">Simulação financeira completa de sêmen convencional versus estratégia Beef on Dairy.</p>
+                <h4 className="text-white font-headline-md mb-2">Margem Líquida Anual</h4>
+                <p className="text-white/80 text-body-md">Gráfico comparativo de rentabilidade e detalhamento completo de custos e receitas do Beef on Dairy.</p>
               </div>
             </div>
             {/* Screen 3 */}
             <div className="group relative rounded-2xl overflow-hidden shadow-lg aspect-video cursor-pointer bg-[#002444]">
               <img
-                alt="Acasalamento Individual"
+                alt="Matching de Touros"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100"
-                src="/images/dashboard-mating.png"
+                src="/images/dashboard-matching-touros.png"
               />
               <div className="absolute inset-0 bg-primary/85 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-md text-center">
                 <h4 className="text-white font-headline-md mb-2">Matching de Touros</h4>
-                <p className="text-white/80 text-body-md">Acoplamento individualizado avaliando conformação linear e evitando endogamia do plantel.</p>
+                <p className="text-white/80 text-body-md">Recomendação automatizada de touros acoplada por mérito genético individual (GTPI, NM$, inbreeding).</p>
               </div>
             </div>
           </div>
