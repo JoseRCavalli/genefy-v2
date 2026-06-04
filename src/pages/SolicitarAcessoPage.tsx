@@ -349,7 +349,7 @@ export function SolicitarAcessoPage() {
           </div>
           <div className="md:col-span-12 border-t border-on-primary/10 pt-md mt-lg">
             <p className="text-on-primary/70 font-label-sm text-label-sm">
-              © 2024 Genefy. Todos os direitos reservados. Precisão genômica para o setor pecuário.
+              © 2026 Genefy. Todos os direitos reservados. Precisão genômica para o setor pecuário.
             </p>
           </div>
         </div>

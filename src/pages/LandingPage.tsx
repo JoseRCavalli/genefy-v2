@@ -139,12 +139,12 @@ export function LandingPage() {
       )}
 
       {/* Hero Section */}
-      <section className="relative min-h-[580px] lg:min-h-[640px] lg:h-[640px] flex items-center pt-20 overflow-hidden">
+      <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
-            className="w-full h-full object-cover object-[center_30%]"
+            className="w-full h-full object-cover object-[80%_35%]"
             alt="A cinematic close-up of a majestic dairy cow in a sun-drenched green pasture at dawn."
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuACRE6jXKAQP944X7JgVgm7k2FBtJMYaFRs40AamCgmBaAX4Msj2fgKaLZe0IDW5PvFl47wJFFJUDaDaz_Btb4m3HupQI5vtwWcYa9-IiNnzaQJ0aA0eq1q-On-HR_YpP2QTtu_tnVXcisrLI02_avgCb-T4IWuIW6yn1lGEZ872FaziP63EMG_FBKmAa2b6tT7bRhOmPNQ3c1JDIocjXgs3TnItNuKv-j0QpF0VVMfhM2E8zBk48PpdmaMizD3043gFxC9HRmiIIQ"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuACRE6jXKAQP944X7JgVgm7k2FBtJMYaFRs40AamCgmBaAX4Msj2fgKaLZe0IDW5PvFl47wJFFJUDaDaz_Btb4m3HupQI5vtwWcYa9-IiNnzaQJ0aA0eq1q-On-HR_YpP2QTtu_tnVXcisrLI02_avgCb-T4IWuIW6yn1lGEZ872FaziP63EMG_FBKmAa2b6tT7bRhOmPNQ3c1JDIocjXgs3TnItNuKv-j0QpF0VVMfhM2E8zBk48PpdmaMizD3043gFxC9HRmiIIQ=w1920"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/80 via-primary/40 to-transparent"></div>
         </div>
