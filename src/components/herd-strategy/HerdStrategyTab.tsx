@@ -127,6 +127,9 @@ export function HerdStrategyTab({ females, femaleRows, weights, farmId }: Props)
             strategy={strategy}
             plan={replacementPlan}
             onUpdate={updateStrategy}
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+            onSave={handleSave}
           />
         )}
         {activeSubTab === 'classification' && (
@@ -135,6 +138,9 @@ export function HerdStrategyTab({ females, femaleRows, weights, farmId }: Props)
             assignments={assignments}
             groupCounts={groupCounts}
             onUpdate={updateStrategy}
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+            onSave={handleSave}
           />
         )}
         {activeSubTab === 'economics' && (
@@ -143,6 +149,9 @@ export function HerdStrategyTab({ females, femaleRows, weights, farmId }: Props)
             economics={economics}
             groupCounts={groupCounts}
             onUpdate={updateStrategy}
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+            onSave={handleSave}
           />
         )}
       </div>
