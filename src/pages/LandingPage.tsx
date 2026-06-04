@@ -316,7 +316,7 @@ export function LandingPage() {
                 <div className="w-16 h-16 bg-secondary-container rounded-2xl flex items-center justify-center mb-md text-on-secondary-container">
                   <Cpu className="w-8 h-8" />
                 </div>
-                <h3 className="font-headline-md text-headline-md text-primary mb-sm">Análise Genofônica</h3>
+                <h3 className="font-headline-md text-headline-md text-primary mb-sm">Análise Genética</h3>
                 <p className="font-body-md text-body-md text-on-surface-variant">
                   Nosso algoritmo processa milhares de combinações possíveis para identificar os acasalamentos que maximizam o retorno genético.
                 </p>
@@ -483,7 +483,7 @@ export function LandingPage() {
             <div className="glass-card pricing-card p-lg rounded-2xl flex flex-col reveal">
               <h3 className="font-headline-md text-headline-md text-primary mb-sm">Starter</h3>
               <div className="flex items-baseline gap-1 mb-md">
-                <span className="text-headline-lg font-bold text-primary">R$ 490</span>
+                <span className="text-headline-lg font-bold text-primary">R$ 199</span>
                 <span className="text-on-surface-variant text-body-md">/mês</span>
               </div>
               <p className="text-on-surface-variant mb-lg font-body-md">Ideal para rebanhos até 100 matrizes.</p>
@@ -509,7 +509,7 @@ export function LandingPage() {
             <div className="glass-card pricing-card p-lg rounded-2xl flex flex-col reveal" style={{ transitionDelay: '100ms' }}>
               <h3 className="font-headline-md text-headline-md text-primary mb-sm">Plus</h3>
               <div className="flex items-baseline gap-1 mb-md">
-                <span className="text-headline-lg font-bold text-primary">R$ 790</span>
+                <span className="text-headline-lg font-bold text-primary">R$ 299</span>
                 <span className="text-on-surface-variant text-body-md">/mês</span>
               </div>
               <p className="text-on-surface-variant mb-lg font-body-md">Até 250 matrizes com alertas avançados.</p>
@@ -542,7 +542,7 @@ export function LandingPage() {
               </div>
               <h3 className="font-headline-md text-headline-md text-primary mb-sm">Pro</h3>
               <div className="flex items-baseline gap-1 mb-md">
-                <span className="text-headline-lg font-bold text-primary">R$ 1.290</span>
+                <span className="text-headline-lg font-bold text-primary">R$ 599</span>
                 <span className="text-on-surface-variant text-body-md">/mês</span>
               </div>
               <p className="text-on-surface-variant mb-lg font-body-md">Até 500 matrizes com IA avançada.</p>
