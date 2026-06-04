@@ -39,6 +39,8 @@ export function useHerdStrategy(
 
   const [failedMatingsCount, setFailedMatingsCount] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Carregar dados de estratégia do banco de dados (se não for demo)
   const loadStrategy = useCallback(async () => {
@@ -58,6 +60,7 @@ export function useHerdStrategy(
           ...data,
           semen_costs: data.semen_costs || DEFAULT_HERD_STRATEGY.semen_costs,
         });
+        setHasUnsavedChanges(false);
       } else {
         // Se não existir, criar com os valores default
         const newStrategy = { ...DEFAULT_HERD_STRATEGY, farm_id: farmId };
@@ -68,6 +71,7 @@ export function useHerdStrategy(
           console.error('Error creating default strategy:', insertError);
         } else {
           setStrategyState(newStrategy as HerdStrategy);
+          setHasUnsavedChanges(false);
         }
       }
     } catch (err) {
@@ -112,28 +116,46 @@ export function useHerdStrategy(
     loadFailedMatings();
   }, [loadStrategy, loadFailedMatings]);
 
-  // Atualizar estratégia (DB ou localStorage)
+  // Atualizar estratégia local (apenas estado do React, marcando como não salvo)
   const updateStrategy = useCallback(
-    async (newStrategy: Partial<HerdStrategy>) => {
-      const updated = { ...strategy, ...newStrategy };
-      setStrategyState(updated);
+    (newStrategy: Partial<HerdStrategy>) => {
+      setStrategyState((prev) => {
+        const updated = { ...prev, ...newStrategy };
+        setHasUnsavedChanges(true);
+        return updated;
+      });
+      return Promise.resolve(null);
+    },
+    []
+  );
 
+  // Salvar estratégia no banco de dados ou localStorage
+  const saveStrategy = useCallback(async () => {
+    setIsSaving(true);
+    try {
       if (isDemo) {
-        localStorage.setItem(LS_STRATEGY, JSON.stringify(updated));
-        return Promise.resolve(null);
+        localStorage.setItem(LS_STRATEGY, JSON.stringify(strategy));
+        setHasUnsavedChanges(false);
+        return null;
       } else if (farmId) {
         const { error } = await supabase
           .from('herd_strategy')
-          .upsert({ ...updated, farm_id: farmId, updated_at: new Date().toISOString() });
+          .upsert({ ...strategy, farm_id: farmId, updated_at: new Date().toISOString() });
         if (error) {
-          console.error('Error updating strategy:', error);
+          console.error('Error saving strategy:', error);
           return error;
         }
+        setHasUnsavedChanges(false);
         return null;
       }
-    },
-    [isDemo, farmId, strategy]
-  );
+      return null;
+    } catch (err) {
+      console.error(err);
+      return err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [isDemo, farmId, strategy]);
 
   // ─── CÁLCULOS CENTRALIZADOS EM MEMÓRIA ──────────────────────────────────────
   const { assignments, replacementPlan, economics, groupCounts } = useMemo(() => {
@@ -469,6 +491,9 @@ export function useHerdStrategy(
     economics,
     groupCounts,
     updateStrategy,
+    saveStrategy,
+    hasUnsavedChanges,
+    isSaving,
     isLoading,
     reload: loadStrategy,
   };
