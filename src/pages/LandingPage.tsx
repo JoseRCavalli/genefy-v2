@@ -60,6 +60,101 @@ export function LandingPage() {
     };
   }, []);
 
+  // Particle Canvas system
+  useEffect(() => {
+    const canvas = document.getElementById('particle-canvas') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let particles: Array<{
+      x: number;
+      y: number;
+      size: number;
+      speedX: number;
+      speedY: number;
+      opacity: number;
+      reset: () => void;
+      update: () => void;
+      draw: () => void;
+    }> = [];
+
+    const resizeCanvas = () => {
+      const parent = canvas.parentElement;
+      if (parent) {
+        canvas.width = parent.offsetWidth;
+        canvas.height = parent.offsetHeight;
+      }
+    };
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const createParticle = () => {
+      const p = {
+        x: 0,
+        y: 0,
+        size: 0,
+        speedX: 0,
+        speedY: 0,
+        opacity: 0,
+        reset() {
+          p.x = Math.random() * canvas.width;
+          p.y = Math.random() * canvas.height;
+          p.size = Math.random() * 2 + 1;
+          p.speedX = (Math.random() - 0.5) * 0.3;
+          p.speedY = (Math.random() - 0.5) * 0.3;
+          p.opacity = Math.random() * 0.4;
+        },
+        update() {
+          p.x += p.speedX;
+          p.y += p.speedY;
+          if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
+            p.reset();
+          }
+        },
+        draw() {
+          if (!ctx) return;
+          ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      };
+      p.reset();
+      return p;
+    };
+
+    const initParticles = () => {
+      particles = [];
+      for (let i = 0; i < 40; i++) {
+        particles.push(createParticle());
+      }
+    };
+
+    let animationId: number;
+    const animateParticles = () => {
+      if (!ctx || !canvas) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      animationId = requestAnimationFrame(animateParticles);
+    };
+
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      initParticles();
+      animateParticles();
+    }
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      cancelAnimationFrame(animationId);
+    };
+  }, []);
+
   // Form submission for contact
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,17 +234,21 @@ export function LandingPage() {
       )}
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
-        <div className="absolute inset-0 z-0">
+      <section className="relative min-h-[90vh] flex items-center pt-20 overflow-hidden">
+        <div className="absolute inset-0 z-0 overflow-hidden">
           <img
-            className="w-full h-full object-cover object-[80%_35%]"
+            className="w-full h-full object-cover object-[80%_35%] animate-ken-burns"
             alt="A cinematic close-up of a majestic dairy cow in a sun-drenched green pasture at dawn."
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuACRE6jXKAQP944X7JgVgm7k2FBtJMYaFRs40AamCgmBaAX4Msj2fgKaLZe0IDW5PvFl47wJFFJUDaDaz_Btb4m3HupQI5vtwWcYa9-IiNnzaQJ0aA0eq1q-On-HR_YpP2QTtu_tnVXcisrLI02_avgCb-T4IWuIW6yn1lGEZ872FaziP63EMG_FBKmAa2b6tT7bRhOmPNQ3c1JDIocjXgs3TnItNuKv-j0QpF0VVMfhM2E8zBk48PpdmaMizD3043gFxC9HRmiIIQ=w1920"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/80 via-primary/40 to-transparent"></div>
         </div>
+        
+        {/* Ambient Particle Overlay */}
+        <canvas id="particle-canvas"></canvas>
+
         <div className="relative z-10 px-margin-mobile md:px-margin-desktop max-w-[1440px] mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-gutter">
-          <div className="md:col-span-8 lg:col-span-6 reveal">
+          <div className="md:col-span-8 lg:col-span-6 reveal animate-float">
             <span className="inline-flex items-center gap-2 px-3 py-1 bg-tertiary-container text-on-tertiary-fixed rounded-full text-label-sm font-label-sm mb-md">
               <Dna className="w-4 h-4" />
               TECNOLOGIA GENÔMICA AVANÇADA
@@ -161,7 +260,7 @@ export function LandingPage() {
               Utilizamos inteligência artificial e análise de dados genômicos para elevar o patamar de produtividade do seu rebanho. Decisões baseadas em ciência, não em intuição.
             </p>
             <div className="flex flex-wrap gap-md">
-              <Link to="/solicitar" className="bg-[#1E7E34] text-white px-lg py-md rounded-xl font-label-md text-label-md hover:brightness-110 transition-all flex items-center gap-2">
+              <Link to="/solicitar" className="bg-[#1E7E34] text-white px-lg py-md rounded-xl font-label-md text-label-md hover:brightness-110 transition-all flex items-center gap-2 shadow-lg hover:shadow-green-900/20">
                 Começar Agora
                 <ArrowRight className="w-4 h-4" />
               </Link>
@@ -365,9 +464,9 @@ export function LandingPage() {
               Soluções escaláveis para rebanhos de todos os tamanhos, desde produtores familiares a grandes grupos agroindustriais.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter items-stretch">
             {/* Plan 1 */}
-            <div className="glass-card p-lg rounded-2xl flex flex-col reveal">
+            <div className="glass-card pricing-card p-lg rounded-2xl flex flex-col reveal">
               <h3 className="font-headline-md text-headline-md text-primary mb-sm">Starter</h3>
               <div className="flex items-baseline gap-1 mb-md">
                 <span className="text-headline-lg font-bold text-primary">R$ 490</span>
@@ -388,12 +487,42 @@ export function LandingPage() {
                   <span>Suporte via Ticket</span>
                 </li>
               </ul>
-              <Link to="/solicitar" className="w-full py-md border border-primary text-primary rounded-xl font-label-md hover:bg-primary hover:text-white transition-all text-center block">
+              <Link to="/solicitar" className="w-full py-md border border-primary text-primary rounded-xl font-label-md hover:bg-primary hover:text-white transition-all text-center block mt-auto">
                 Assinar Agora
               </Link>
             </div>
-            {/* Plan 2 (PRO) */}
-            <div className="glass-card p-lg rounded-2xl flex flex-col border-2 border-tertiary-container relative reveal scale-105 shadow-xl" style={{ transitionDelay: '100ms' }}>
+            {/* Plan 2 (Plus) */}
+            <div className="glass-card pricing-card p-lg rounded-2xl flex flex-col reveal" style={{ transitionDelay: '100ms' }}>
+              <h3 className="font-headline-md text-headline-md text-primary mb-sm">Plus</h3>
+              <div className="flex items-baseline gap-1 mb-md">
+                <span className="text-headline-lg font-bold text-primary">R$ 790</span>
+                <span className="text-on-surface-variant text-body-md">/mês</span>
+              </div>
+              <p className="text-on-surface-variant mb-lg font-body-md">Até 250 matrizes com alertas avançados.</p>
+              <ul className="space-y-sm mb-xl flex-grow">
+                <li className="flex items-center gap-2 font-body-md text-on-surface-variant">
+                  <Check className="text-[#1E7E34] w-4 h-4 shrink-0" />
+                  <span>Tudo do Starter</span>
+                </li>
+                <li className="flex items-center gap-2 font-body-md text-on-surface-variant">
+                  <Check className="text-[#1E7E34] w-4 h-4 shrink-0" />
+                  <span>Alertas genéticos avançados</span>
+                </li>
+                <li className="flex items-center gap-2 font-body-md text-on-surface-variant">
+                  <Check className="text-[#1E7E34] w-4 h-4 shrink-0" />
+                  <span>Exportação de relatórios PDF</span>
+                </li>
+                <li className="flex items-center gap-2 font-body-md text-on-surface-variant">
+                  <Check className="text-[#1E7E34] w-4 h-4 shrink-0" />
+                  <span>Suporte prioritário</span>
+                </li>
+              </ul>
+              <Link to="/solicitar" className="w-full py-md border border-primary text-primary rounded-xl font-label-md hover:bg-primary hover:text-white transition-all text-center block mt-auto">
+                Assinar Agora
+              </Link>
+            </div>
+            {/* Plan 3 (PRO) */}
+            <div className="glass-card pricing-card p-lg rounded-2xl flex flex-col border-2 border-tertiary-container relative reveal scale-105 shadow-xl" style={{ transitionDelay: '200ms' }}>
               <div className="absolute top-0 right-md -translate-y-1/2 bg-tertiary-container text-on-tertiary-fixed px-3 py-1 rounded-full text-label-sm flex items-center gap-1">
                 <Star className="w-3 h-3 fill-current" /> MAIS POPULAR
               </div>
@@ -421,12 +550,12 @@ export function LandingPage() {
                   <span>Suporte prioritário 24/7</span>
                 </li>
               </ul>
-              <Link to="/solicitar" className="w-full py-md bg-primary text-white rounded-xl font-label-md hover:brightness-125 transition-all text-center block">
+              <Link to="/solicitar" className="w-full py-md bg-primary text-white rounded-xl font-label-md hover:brightness-125 transition-all text-center block mt-auto">
                 Assinar Agora
               </Link>
             </div>
-            {/* Plan 3 */}
-            <div className="glass-card p-lg rounded-2xl flex flex-col reveal" style={{ transitionDelay: '200ms' }}>
+            {/* Plan 4 */}
+            <div className="glass-card pricing-card p-lg rounded-2xl flex flex-col reveal" style={{ transitionDelay: '300ms' }}>
               <h3 className="font-headline-md text-headline-md text-primary mb-sm">Consultoria</h3>
               <div className="flex items-baseline gap-1 mb-md">
                 <span className="text-headline-lg font-bold text-primary">Sob Consulta</span>
@@ -446,7 +575,7 @@ export function LandingPage() {
                   <span>API White-label</span>
                 </li>
               </ul>
-              <Link to="/solicitar" className="w-full py-md border border-primary text-primary rounded-xl font-label-md hover:bg-primary hover:text-white transition-all text-center block">
+              <Link to="/solicitar" className="w-full py-md border border-primary text-primary rounded-xl font-label-md hover:bg-primary hover:text-white transition-all text-center block mt-auto">
                 Falar com Consultor
               </Link>
             </div>
@@ -454,29 +583,50 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Case Study / Depoimentos */}
+      {/* System Preview Gallery */}
       <section id="depoimentos" className="py-xl bg-surface-container overflow-hidden">
         <div className="max-w-[1440px] mx-auto px-margin-mobile md:px-margin-desktop">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-xl items-center bg-white rounded-3xl shadow-xl overflow-hidden reveal">
-            <div className="h-full min-h-[400px] relative">
+          <div className="text-center mb-xl reveal">
+            <h2 className="font-headline-lg text-headline-lg text-primary mb-sm">Explore nossa Interface</h2>
+            <p className="font-body-md text-body-md text-on-surface-variant max-w-2xl mx-auto">
+              Uma plataforma robusta desenhada para simplificar a gestão genética complexa com dados reais.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter reveal">
+            {/* Screen 1 */}
+            <div className="group relative rounded-2xl overflow-hidden shadow-lg aspect-video cursor-pointer bg-[#002444]">
               <img
-                className="w-full h-full object-cover"
-                alt="A successful dairy farm owner holding a tablet showing genetic data."
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIQuvFwM38vt0w8lCKQ-bvJC-WZ3bPEDLWE6hby1YZQsDvkJjlejw9wJg_qdGfw0R8T2s5TXbzI4WHjrSZNARic2Vk2yrdTZwpIXvshLguC29N9IXO4HvPicIrCw-z_uelcnxFnbgw2ICm60O05WpeeG2dPGUOgn_6XnHewdHZzs19tBdSfvo4roj72EnmzY4osVnVRWwdii0Jovrac4JqsacgYQRhH04bnm_DSfycpFMB8OuC7xRSY9zigilKWX7hpSoscZY12k4"
+                alt="Classificação do Rebanho"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100"
+                src="/images/dashboard-classification.png"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent"></div>
+              <div className="absolute inset-0 bg-primary/85 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-md text-center">
+                <h4 className="text-white font-headline-md mb-2">Classificação do Rebanho</h4>
+                <p className="text-white/80 text-body-md">Classificação automática de mérito genético do rebanho e divisão de lotes para cruzamento.</p>
+              </div>
             </div>
-            <div className="p-lg md:p-xl">
-              <Quote className="text-tertiary-container w-12 h-12 mb-md" />
-              <h2 className="font-headline-lg text-headline-lg text-primary mb-md italic">
-                "A Genefy mudou a forma como enxergamos a sucessão do nosso rebanho. Em 18 meses, aumentamos a produção média em 15%."
-              </h2>
-              <p className="font-body-lg text-body-lg text-on-surface-variant mb-lg">
-                Estudo de caso: Fazenda Santa Helena. Com a implementação do Genefy Pro, conseguiram reduzir o custo de sêmen em 12% ao mesmo tempo que elevaram o mérito genético do plantel jovem em 22 pontos.
-              </p>
-              <div className="border-t border-surface-container pt-md">
-                <div className="font-label-md text-label-md text-primary">Ricardo Martins</div>
-                <div className="text-on-surface-variant text-body-md">Proprietário - Fazenda Santa Helena</div>
+            {/* Screen 2 */}
+            <div className="group relative rounded-2xl overflow-hidden shadow-lg aspect-video cursor-pointer bg-[#002444]">
+              <img
+                alt="Retorno Econômico"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100"
+                src="/images/dashboard-economics.png"
+              />
+              <div className="absolute inset-0 bg-primary/85 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-md text-center">
+                <h4 className="text-white font-headline-md mb-2">Retorno Econômico</h4>
+                <p className="text-white/80 text-body-md">Simulação financeira completa de sêmen convencional versus estratégia Beef on Dairy.</p>
+              </div>
+            </div>
+            {/* Screen 3 */}
+            <div className="group relative rounded-2xl overflow-hidden shadow-lg aspect-video cursor-pointer bg-[#002444]">
+              <img
+                alt="Acasalamento Individual"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100"
+                src="/images/dashboard-mating.png"
+              />
+              <div className="absolute inset-0 bg-primary/85 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-md text-center">
+                <h4 className="text-white font-headline-md mb-2">Matching de Touros</h4>
+                <p className="text-white/80 text-body-md">Acoplamento individualizado avaliando conformação linear e evitando endogamia do plantel.</p>
               </div>
             </div>
           </div>
