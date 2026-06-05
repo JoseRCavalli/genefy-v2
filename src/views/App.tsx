@@ -7,7 +7,6 @@ import { CustomHeader } from '../components/ui/CustomHeader';
 import { Sidebar } from '../components/layout/Sidebar';
 import { MatchingTab } from '../components/matching/MatchingTab';
 import { MatingPlanTab } from '../components/mating-plan/MatingPlanTab';
-import { FullAnalysisTab } from '../components/full-analysis/FullAnalysisTab';
 import { PrimiparousTab } from '../components/primiparous/PrimiparousTab';
 import { CatalogTab } from '../components/catalog/CatalogTab';
 import { HerdTab } from '../components/herd/HerdTab';
@@ -157,20 +156,6 @@ function DemoApp() {
               femaleRows={femaleRows}
               onUpdateTank={updateTankEntry}
               onNavigate={setActiveTab}
-            />
-          )}
-          {activeTab === 'full-analysis' && (
-            <FullAnalysisTab
-              females={females}
-              allBulls={filteredBulls}
-              tankBulls={filteredTankBulls}
-              tank={filteredTank}
-              weights={weights}
-              maxInb={maxInb}
-              a2a2Only={a2a2Only}
-              useRel={useRel}
-              farmId={farm.id}
-              bullRows={bullRows}
             />
           )}
           {activeTab === 'primiparous' && (
@@ -397,20 +382,6 @@ function SupabaseApp() {
               femaleRows={femaleRows}
               onUpdateTank={updateTankEntry}
               onNavigate={setActiveTab}
-            />
-          )}
-          {activeTab === 'full-analysis' && (
-            <FullAnalysisTab
-              females={females}
-              allBulls={filteredBulls}
-              tankBulls={filteredTankBulls}
-              tank={filteredTank}
-              weights={weights}
-              maxInb={maxInb}
-              a2a2Only={a2a2Only}
-              useRel={useRel}
-              farmId={farm.id}
-              bullRows={bullRows}
             />
           )}
           {activeTab === 'primiparous' && (
