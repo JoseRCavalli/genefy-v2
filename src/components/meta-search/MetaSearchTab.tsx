@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Search } from 'lucide-react';
 import type { Bull, Female, MetaGoals, MetaResult } from '../../lib/matching';
 import { fmt, inbClass } from '../../lib/matching';
-import { useAuth } from '../../contexts/AuthContext';
-import { calcMetaSearch, isLocalCalc } from '../../lib/calc-client';
+import { calcMetaSearch } from '../../lib/calc-client';
 
 interface Props {
   females: Female[];
@@ -23,7 +22,6 @@ const GOAL_FIELDS: { key: keyof MetaGoals; label: string; step?: number }[] = [
 ];
 
 export function MetaSearchTab({ females, allBulls, tankBulls, farmId }: Props) {
-  const { user } = useAuth();
   const [goals, setGoals] = useState<Partial<MetaGoals>>({});
   const [results, setResults] = useState<MetaResult[]>([]);
   const [running, setRunning] = useState(false);
@@ -39,9 +37,7 @@ export function MetaSearchTab({ females, allBulls, tankBulls, farmId }: Props) {
     const bulls = tankOnly ? tankBulls : allBulls;
     try {
       const res = await calcMetaSearch({
-        local: isLocalCalc(user?.email) || !farmId,
         farmId: farmId ?? '',
-        females,
         bulls,
         bullsIsFullSet: !tankOnly,
         goals: goals as MetaGoals,

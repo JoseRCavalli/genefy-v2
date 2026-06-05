@@ -5,7 +5,7 @@ import { BullOptionCard } from './BullOptionCard';
 import type { BullRow, FemaleRow } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { insertDemoMating } from '../../lib/demo-matings';
-import { calcTop3, isLocalCalc, type MatchOption } from '../../lib/calc-client';
+import { calcTop3, type MatchOption } from '../../lib/calc-client';
 
 import type { FemaleAssignment } from '../../types/herd-strategy.types';
 import { GROUP_LABELS, GROUP_COLORS } from '../../types/herd-strategy.types';
@@ -53,7 +53,6 @@ export function MatchingTab({
       const bulls = catalogFilter ? base.filter(b => (b.catalog ?? 'CDCB') === catalogFilter) : base;
       try {
         const result = await calcTop3({
-          local: isLocalCalc(user?.email),
           farmId,
           females: [female],
           bulls,

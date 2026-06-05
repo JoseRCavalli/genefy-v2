@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Lightbulb, Circle, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Bull, Female, WeightMap } from '../../lib/matching';
-import { calcTop3, isLocalCalc, type MatchOption } from '../../lib/calc-client';
+import { calcTop3, type MatchOption } from '../../lib/calc-client';
 
 type MatchResult = { bull: Bull; inbreeding: number; score: number; carriers: string[]; isCustom: boolean };
 import type { FemaleRow, BullRow } from '../../lib/supabase';
@@ -59,7 +59,6 @@ export function PrimiparousTab({
       const bulls = allBulls.length > 0 ? (tankBulls.length > 0 ? tankBulls : allBulls) : allBulls;
       try {
         const result = await calcTop3({
-          local: isLocalCalc(user?.email),
           farmId,
           females: primiparousFemales,
           bulls,

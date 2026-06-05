@@ -286,7 +286,7 @@ export function MatingPlanTab({
 
   async function handleVerProgenie(female: Female, bull: Bull) {
     try {
-      setProgenieAberta(await calcProgeny({ local: isDemoUser, farmId, female, bull }));
+      setProgenieAberta(await calcProgeny({ farmId, female, bull }));
     } catch (err) {
       console.error('[MatingPlanTab] calcProgeny:', err);
     }
@@ -334,11 +334,9 @@ export function MatingPlanTab({
   async function runPlan(femalesToPlan: Female[]) {
     try {
       const planResults = await calcMatingPlan({
-        local: isDemoUser,
         farmId,
         females: femalesToPlan,
         tank: tank.map(e => [e.bull.code, e.doses]),
-        allBulls,
         weights,
         maxInb,
       });
