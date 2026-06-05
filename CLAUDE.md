@@ -15,7 +15,7 @@ npm run start      # serve the production build
 npm run seed       # tsx scripts/seed.ts — seeds Supabase from BASE_BULLS/BASE_FEMALES (needs SUPABASE_SERVICE_ROLE_KEY in .env)
 ```
 
-Env vars (see `.env.example`): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_DEMO_MODE` (all inlined into the client bundle at **build time**), plus `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` for the seed script only. Deployed on Vercel.
+Env vars (see `.env.example`): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (inlined into the client bundle at **build time**), plus `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` for the seed script only. Deployed on Vercel.
 
 ## Architecture
 
@@ -27,18 +27,17 @@ Env vars (see `.env.example`): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE
 
 The client NEVER queries Supabase tables directly. All data flows through Route Handlers under `src/app/api/` (`farm`, `bulls` (+`/import`), `females`, `tank`, `weights`, `herd-strategy`, `matings` (+`/failed-counts`), `calc/*`), which use `src/lib/supabase-server.ts` (`@supabase/ssr` `createServerClient` + `requireUser()` → 401 without session). **Authorization is RLS only** — handlers run the same queries the old hooks ran, scoped by the user's JWT; never hand-roll farm checks and never use the service-role key for user data (it is reserved for `scripts/seed.ts`). The session lives in **cookies** (`src/lib/supabase.ts` uses `createBrowserClient`) so it reaches the server; `src/proxy.ts` (Next 16's middleware) refreshes expired tokens. The browser Supabase client is used ONLY for auth (`signInWithPassword`, `signOut`, `updateUser`).
 
-Calculations: the decision-making math runs SERVER-SIDE via `POST /api/calc/{top3,mating-plan,meta-search,progeny}` — these import genetics.ts directly and rebuild inputs from the DB + `CATALOG_BULLS` (`src/lib/calc-data-server.ts`); the client sends ids/codes + params through the `src/lib/calc-client.ts` façade. The façade runs genetics.ts LOCALLY for the demo paths (genetics.ts stays framework-agnostic on purpose). Render-level transforms (progeny chips, scoreBull inside cards, herd-merit memo in `useHerdStrategy`) intentionally stay client-side.
+Calculations: the decision-making math runs SERVER-SIDE via `POST /api/calc/{top3,mating-plan,meta-search,progeny}` — these import genetics.ts directly and rebuild inputs server-side (`getCalcContext` in `src/lib/calc-data-server.ts`); the client sends ids/codes + params through the `src/lib/calc-client.ts` façade (which has NO runtime import of genetics — the decision algorithms are not in the client bundle). Render-level transforms (progeny chips inside cards/history, herd-merit memo in `useHerdStrategy`, `estimateCowPtas` in HerdTab, `norm`/ICFG) intentionally stay client-side.
 
-### Two app modes + a demo account (three data paths)
+**Bundle hygiene (Phase 3 invariant):** `data.ts` (real Granja Cavalli herd), `catalog-bulls.ts` and `demo-females.ts` are SERVER-ONLY imports (route handlers / seed). Never import them from components/hooks/views — the catalog reaches the client via `GET /api/catalog` (cacheable) and herd data via `/api/females`. `getTop3Options`/`runMatingPlan`/`searchByGoal` must not be imported by client modules either.
 
-`src/views/App.tsx` contains two nearly-identical app shells chosen at build time by `NEXT_PUBLIC_DEMO_MODE` (exported as `AppShell`, rendered by the `/app` route):
+### The app shell + the demo account (two data paths)
 
-1. **`DemoApp`** (`NEXT_PUBLIC_DEMO_MODE=true`) — fully client-side, no Supabase. Uses the `useDemo*` hooks from `src/hooks/useDemo.ts`; persistence is localStorage.
-2. **`SupabaseApp`** — behind `AuthGuard`, uses the Supabase-backed hooks (`useFarm`, `useBulls`, `useFemales`, `useTank`, `useWeights`).
+`src/views/App.tsx` exports `AppShell` = `AuthGuard > SupabaseApp` (the old build-time `DemoApp`/`NEXT_PUBLIC_DEMO_MODE` mode was removed in Phase 3). `SupabaseApp` uses the API-backed hooks (`useFarm`, `useBulls`, `useFemales`, `useTank`, `useWeights`).
 
-Separately, inside `SupabaseApp` there is a **demo account**: logging in as `demo@gmail.com` short-circuits auth in `src/contexts/AuthContext.tsx` (mock session in localStorage, no Supabase Auth call). Since Phase 2 this account is **fully client-side**: fixed "Fazenda Teste" farm object, `DEMO_FEMALES` (100 fictional females from `src/lib/demo-females.ts` — deliberately fake; must never show real herd data), and per-browser localStorage for tank/presets/strategy/matings (`genefy_demo_account_*` keys, matings via `src/lib/demo-matings.ts`). It makes ZERO `/api` calls and zero Supabase REST calls — and couldn't anyway: the mock session has no auth cookies, so every handler returns 401. Do not confuse this account with `NEXT_PUBLIC_DEMO_MODE`.
+There is a **demo account**: logging in as `demo@gmail.com` short-circuits auth in `src/contexts/AuthContext.tsx` (mock session + a server-readable `genefy_demo_session` cookie). Since Phase 3 the demo READS come from the API: handlers check `isDemoRequest()` (`src/lib/demo-server.ts`) BEFORE `requireUser()` and serve fictional data (fixed "Fazenda Teste", `DEMO_FEMALES` from `src/lib/demo-females.ts`, the static catalog) without ever touching Supabase; `/api/calc/*` compute over the fictional data. Demo WRITES stay per-browser (in-memory edits + localStorage `genefy_demo_account_*` keys; matings via `src/lib/demo-matings.ts`) — the server never persists anything for demo. Real herd data is unreachable for demo by construction (no Supabase cookies → RLS-scoped handlers 401).
 
-**Consequence:** any new data feature must be implemented three ways with the same return shape — the fetch path in the Supabase hook, the `useDemo*` hook, and the `isDemoUser` localStorage branch inside the Supabase hook.
+**Consequence:** any new data feature must be implemented in the fetch path of the hook AND in the `isDemoUser` write-branch inside the same hook; new GET handlers that serve farm data need an `isDemoRequest()` branch.
 
 ### Domain math: `src/lib/genetics.ts`
 
@@ -49,7 +48,7 @@ All genetic/scoring math lives here (~900 lines), extracted from a validated leg
 - **Domain types** `Bull`/`Female` (camelCase-ish, index-signature, defined in genetics.ts) — used by all math and most components.
 - **DB row types** `BullRow`/`FemaleRow` etc. (snake_case, defined in `src/lib/supabase.ts`) — mirror the Postgres schema.
 
-Hooks load rows from the API and convert (`rowToFemale`/`rowToBull` in `src/lib/row-mappers.ts` — framework-agnostic because the `/api/calc/*` handlers use them too); both forms (`bulls`+`bullRows`, `females`+`femaleRows`) are threaded through props side by side. When adding a column you typically touch: SQL migration, the Row interface, the domain interface, the row→domain mapper, the Route Handler (if whitelisted, e.g. the `PATCHABLE` list in `/api/females/[id]`), and the demo hook mapper.
+Hooks load rows from the API and convert (`rowToFemale`/`rowToBull` in `src/lib/row-mappers.ts` — framework-agnostic because the `/api/calc/*` handlers use them too); both forms (`bulls`+`bullRows`, `females`+`femaleRows`) are threaded through props side by side. When adding a column you typically touch: SQL migration, the Row interface, the domain interface, the row→domain mapper (and `femalesToRows` if the demo data should carry it), and the Route Handler (if whitelisted, e.g. the `PATCHABLE` list in `/api/females/[id]`).
 
 ### UI structure
 

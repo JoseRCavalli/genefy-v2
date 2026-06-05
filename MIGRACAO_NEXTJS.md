@@ -1,9 +1,8 @@
 # Migração Genefy v2: Vite → Next.js 16 (App Router) + Backend
 
-> Documentação da migração executada em **05/06/2026**, em duas fases planejadas e
-> aprovadas separadamente. Commits `eba46aa..6e50073` (19 commits, 69 arquivos,
-> +3.141/−2.712 linhas). Este documento descreve **o que mudou, por quê, e o que
-> ficou pendente**.
+> Documentação da migração executada em **05/06/2026**, em três fases planejadas e
+> aprovadas separadamente (Fases 1 e 2: `eba46aa..6e50073`; Fase 3: ver seção).
+> Este documento descreve **o que mudou, por quê, e o que ficou pendente**.
 
 ---
 
@@ -146,16 +145,15 @@ Browser ──cookies de auth──▶ src/proxy.ts (refresh) ──▶ Route Ha
 | **Client** | transforms de render: chips de progênie no histórico, `progenyProfile`/`calcPppv` dentro dos cards, `scoreBull` em exibição, mérito do rebanho (`calculateFemaleMeritScore` no memo do `useHerdStrategy`) | São síncronos por linha/render; `genetics.ts` permanece agnóstico de framework de propósito |
 | **Client (demo)** | TODOS os cálculos | DemoApp e conta demo não chamam API — a façade `src/lib/calc-client.ts` decide local × remoto via `isLocalCalc()` |
 
-### Os três caminhos de dados (não confundir!)
+### Os caminhos de dados na Fase 2 (alterados na Fase 3 — ver abaixo)
 
 1. **`NEXT_PUBLIC_DEMO_MODE=true` (DemoApp)** — decidido em build time. 100% client-side,
-   hooks `useDemo*`, localStorage `genefy_demo_*`. Não mudou na Fase 2.
+   hooks `useDemo*`, localStorage `genefy_demo_*`. *(Removido na Fase 3.)*
 2. **Conta `demo@gmail.com` (dentro do SupabaseApp)** — sessão mock sem cookies Supabase.
-   Desde a Fase 2 é 100% client-side: farm fixa "Fazenda Teste", fêmeas `DEMO_FEMALES`,
+   Na Fase 2 era 100% client-side: farm fixa "Fazenda Teste", fêmeas `DEMO_FEMALES`,
    botijão/presets/estratégia/matings em localStorage (`genefy_demo_account_*`,
-   matings via `src/lib/demo-matings.ts`). **Zero chamadas `/api`, zero REST Supabase**
-   (provado por captura de rede no smoke). Defesa em profundidade: sem cookies,
-   qualquer handler responderia 401.
+   matings via `src/lib/demo-matings.ts`). **Zero chamadas `/api`, zero REST Supabase**.
+   *(Na Fase 3, as LEITURAS passaram para a API.)*
    - *Mudança de comportamento (correção)*: antes, todos os visitantes demo
      compartilhavam uma farm/botijão REAIS no banco; agora cada browser tem os seus.
 3. **Usuário real** — login Supabase → cookies → API interna → RLS.
@@ -180,27 +178,92 @@ estendido), a funcionalidade saiu do sistema (`ec2d447`):
 
 ---
 
+## FASE 3 — Blindagem do bundle (demo via API)
+
+Motivação: após a Fase 2, **fórmulas e dados ainda eram extraíveis do JS do client**
+("view source"): genetics.ts inteiro (por causa do caminho local de cálculo do demo),
+`CATALOG_BULLS` (2.720 touros) e — o mais grave — **`BASE_FEMALES`, as 469 fêmeas
+REAIS da Granja Cavalli**, embarcadas num bundle servido sem autenticação.
+
+### O que mudou
+
+1. **DemoApp removido do sistema** (`NEXT_PUBLIC_DEMO_MODE` deixou de existir).
+   A única experiência de demonstração é a conta `demo@gmail.com`. Apagados:
+   `DemoApp` em `views/App.tsx`, `src/hooks/useDemo.ts`, branches `IS_DEMO` em
+   HerdTab/FemalesCatalogTab/CustomHeader/MatingPlanTab, prop `demoMode` do HistoryTab.
+
+2. **Demo via API (cookie)**: o login demo grava o cookie `genefy_demo_session`;
+   os handlers checam `isDemoRequest()` (`src/lib/demo-server.ts`) ANTES do
+   `requireUser()` e servem dados FICTÍCIOS sem tocar no Supabase:
+   - `GET /api/farm` → Fazenda Teste fixa
+   - `GET /api/females` → `DEMO_FEMALES` (100 fictícias)
+   - `POST /api/calc/*` → computam sobre os dados fictícios (`getCalcContext`)
+   - **Escritas demo continuam client-side** (memória/localStorage) — servidor
+     stateless nunca persiste nada para a demo
+
+3. **`GET /api/catalog`** (sessão OU cookie demo; `Cache-Control: private, max-age=3600`):
+   o catálogo saiu do bundle; `useBulls` busca da API (~880KB JSON, cacheado no browser).
+
+4. **`useFemales` sem `BASE_FEMALES`**: estado inicial `[]`; fallbacks do
+   catálogo de fêmeas removidos. *(Efeito visível: a aba Catálogo de Fêmeas
+   mostra apenas o rebanho da fazenda logada — antes mesclava as 469 fêmeas
+   da Granja Cavalli para qualquer usuário.)*
+
+5. **`calc-client.ts` sem caminho local**: sempre POSTa; nenhum import runtime
+   de genetics.ts no client (tipos via `typeof import`, apagados na compilação).
+
+### O que foi PROVADO no bundle de produção (grep nos chunks)
+
+| Marcador | Resultado |
+|---|---|
+| Fêmea real (`bdate 2019-02-12`, 1ª de BASE_FEMALES) | **ausente ✓** |
+| Touro de catálogo (`200HO13678` / Timetraveler) | **ausente ✓** |
+| `DEMO_FEMALES` (pool `DELTA-LAMBDA`) | **ausente ✓** |
+| `doseAllocated` (chave construída SÓ dentro de `runMatingPlan`, lida por nenhum componente) | **0 ocorrências ✓** → corpo dos algoritmos fora do bundle (tree-shake por export confirmado) |
+| `ICFG`/`normCdf` (matemática de render: norm, progenyProfile, calcPppv, estimateCowPtas, mérito) | presente — **trade-off aceito** (decisão de produto) |
+
+Tamanho dos chunks do client: **1,5MB total** (antes continha data.ts 670KB + catálogo).
+
+### O que AINDA fica no client (aceito conscientemente)
+
+Matemática de exibição por linha: `estimateCowPtas`/`calcCowRel` (HerdTab),
+`calculateFemaleMeritScore` (memo da estratégia), `progenyProfile`/`calcPppv`
+(cards/modal), `inb`, `norm` + ranges `ICFG`, helpers de formatação. Movê-los
+exigiria endpoints com debounce e latência em sliders/tabelas.
+
+### Smoke da Fase 3 (browser real)
+
+- Login demo → cookie gravado → matching/plano calculados **no servidor**
+  (`POST /api/calc/top3` e `/api/calc/mating-plan` observados na rede)
+- Histórico demo: 86 matings do localStorage
+- **Zero chamadas REST Supabase** na sessão demo inteira; `/api/catalog` 401 sem
+  sessão/cookie e 200 com cookie demo
+- Zero erros JS
+
+---
+
 ## Pendências e ações operacionais
 
 | # | Ação | Responsável |
 |---|---|---|
 | 1 | **Validação autenticada com login real** (cookie→RLS fim-a-fim): logar com usuário real e conferir rebanho/botijão/salvar acasalamento. Não foi possível automatizar sem criar usuário na base de produção | usuário |
 | 2 | **Re-login obrigatório**: sessões antigas viviam em localStorage; com cookies, cada usuário real loga de novo uma vez após o deploy | usuários |
-| 3 | **Vercel**: renomear env vars do projeto para `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_DEMO_MODE` antes do próximo deploy | usuário |
+| 3 | **Vercel**: renomear env vars do projeto para `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` antes do próximo deploy (`NEXT_PUBLIC_DEMO_MODE` deixou de existir na Fase 3) | usuário |
 | 4 | **Rotacionar a service role key** exposta em `scripts/verify_rls.ts` (pré-existente; o arquivo hardcoda URL + anon + service role) | usuário |
 | 5 | Endurecer policies RLS (`owner_id IS NULL` dá acesso público a farms órfãs; `bulls: insert policy` rejeita inserts de catálogo com `farm_id NULL`, herdado pelo `ensureBullInDb` do servidor) — fora de escopo das fases, comportamento mantido | follow-up |
 
-## Mapa de arquivos novos da Fase 2
+## Mapa de arquivos novos (Fases 2 e 3)
 
 ```
 src/proxy.ts                      # refresh de sessão (middleware do Next 16)
 src/lib/supabase-server.ts        # createServerClient + requireUser (401)
 src/lib/ensure-bull-server.ts     # code→uuid no servidor (tank/matings)
-src/lib/calc-data-server.ts       # reconstrução de inputs p/ /api/calc/*
-src/lib/calc-client.ts            # façade local (demo) × remoto (API)
-src/lib/row-mappers.ts            # rowToFemale/rowToBull agnósticos
+src/lib/calc-data-server.ts       # getCalcContext (real via RLS | demo fictício)
+src/lib/calc-client.ts            # façade: sempre POST /api/calc/* (F3)
+src/lib/row-mappers.ts            # rowToFemale/rowToBull/femalesToRows agnósticos
+src/lib/demo-server.ts            # cookie demo + dados fictícios server-side (F3)
 src/lib/demo-matings.ts           # store localStorage de matings da conta demo
-src/app/api/**                    # 16 route handlers (tabela acima)
+src/app/api/**                    # 17 route handlers (16 da F2 + /api/catalog)
 ```
 
 ## Como rodar
