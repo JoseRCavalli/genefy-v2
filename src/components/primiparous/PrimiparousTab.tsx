@@ -52,13 +52,13 @@ export function PrimiparousTab({
     if (onTogglePrimiparous) {
       onTogglePrimiparous(row.id, newValue);
     } else {
-      const { error } = await supabase
-        .from('females')
-        .update({ is_primiparous: newValue })
-        .eq('farm_id', farmId)
-        .eq('id', row.id);
-      if (error) {
-        console.error('Erro ao salvar primípara:', error.message);
+      const res = await fetch(`/api/females/${encodeURIComponent(row.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_primiparous: newValue }),
+      }).catch(() => null);
+      if (!res?.ok) {
+        console.error('Erro ao salvar primípara');
         return;
       }
       onReloadFemales();

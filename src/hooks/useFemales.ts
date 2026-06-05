@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { supabase, FemaleRow } from '../lib/supabase';
+import { FemaleRow } from '../lib/supabase';
 import { BASE_FEMALES } from '../lib/data';
 import { DEMO_FEMALES } from '../lib/demo-females';
 import type { Female } from '../lib/genetics';
@@ -183,10 +183,17 @@ export function useFemales(farmId: string | null | undefined) {
 
     if (!farmId) return;
     setLoading(true);
-    const { data } = await supabase.from('females').select('*').eq('farm_id', farmId).order('animal_id');
-    if (data && data.length > 0) {
-      setFemaleRows(data);
-      setFemales(data.map(rowToFemale));
+    try {
+      const res = await fetch(`/api/females?farmId=${encodeURIComponent(farmId)}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data: FemaleRow[] = await res.json();
+        if (data && data.length > 0) {
+          setFemaleRows(data);
+          setFemales(data.map(rowToFemale));
+        }
+      }
+    } catch (err) {
+      console.error('[useFemales] reload:', err);
     }
     setLoading(false);
   }, [farmId, isDemoUser]);
@@ -390,11 +397,13 @@ export function useFemales(farmId: string | null | undefined) {
       return null;
     }
 
-    const { error } = await supabase
-      .from('females')
-      .upsert({ ...female, farm_id: farmId }, { onConflict: 'farm_id,animal_id' });
-    if (!error) reload();
-    return error;
+    const res = await fetch('/api/females', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ farmId, female }),
+    }).catch(() => null);
+    if (res?.ok) { reload(); return null; }
+    return new Error(res ? (await res.json()).error ?? 'Erro ao salvar fêmea' : 'Erro de rede');
   }
 
   async function setPrimiparous(dbId: string, value: boolean) {
@@ -407,9 +416,13 @@ export function useFemales(farmId: string | null | undefined) {
       return null;
     }
 
-    const { error } = await supabase.from('females').update({ is_primiparous: value }).eq('id', dbId);
-    if (!error) reload();
-    return error;
+    const res = await fetch(`/api/females/${encodeURIComponent(dbId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_primiparous: value }),
+    }).catch(() => null);
+    if (res?.ok) { reload(); return null; }
+    return new Error('Erro ao atualizar primípara');
   }
 
   async function deleteFemale(dbId: string) {
@@ -422,9 +435,9 @@ export function useFemales(farmId: string | null | undefined) {
       return null;
     }
 
-    const { error } = await supabase.from('females').delete().eq('id', dbId);
-    if (!error) reload();
-    return error;
+    const res = await fetch(`/api/females/${encodeURIComponent(dbId)}`, { method: 'DELETE' }).catch(() => null);
+    if (res?.ok) { reload(); return null; }
+    return new Error('Erro ao excluir fêmea');
   }
 
   async function updateFemaleCategories(dbId: string, categories: string[]) {
@@ -437,9 +450,13 @@ export function useFemales(farmId: string | null | undefined) {
       return null;
     }
 
-    const { error } = await supabase.from('females').update({ categories }).eq('id', dbId);
-    if (!error) reload();
-    return error;
+    const res = await fetch(`/api/females/${encodeURIComponent(dbId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categories }),
+    }).catch(() => null);
+    if (res?.ok) { reload(); return null; }
+    return new Error('Erro ao atualizar categorias');
   }
 
   async function updateFemaleNotes(dbId: string, notes: string) {
@@ -452,9 +469,13 @@ export function useFemales(farmId: string | null | undefined) {
       return null;
     }
 
-    const { error } = await supabase.from('females').update({ notes }).eq('id', dbId);
-    if (!error) reload();
-    return error;
+    const res = await fetch(`/api/females/${encodeURIComponent(dbId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes }),
+    }).catch(() => null);
+    if (res?.ok) { reload(); return null; }
+    return new Error('Erro ao atualizar notas');
   }
 
   return {
