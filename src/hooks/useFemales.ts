@@ -167,7 +167,9 @@ export function useFemales(farmId: string | null | undefined) {
   const { user } = useAuth();
   const isDemoUser = user?.email === 'demo@gmail.com';
 
-  const [females, setFemales] = useState<Female[]>(BASE_FEMALES as Female[]);
+  const [females, setFemales] = useState<Female[]>(
+    isDemoUser ? DEMO_FEMALES : BASE_FEMALES as Female[]
+  );
   const [femaleRows, setFemaleRows] = useState<FemaleRow[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -192,6 +194,9 @@ export function useFemales(farmId: string | null | undefined) {
   useEffect(() => { reload(); }, [reload]);
 
   const catalogFemales = useMemo(() => {
+    // Demo user: retorna apenas as fêmeas fictícias, sem mesclar com dados reais
+    if (isDemoUser) return females;
+
     if (femaleRows.length === 0) {
       return BASE_FEMALES as Female[];
     }
@@ -202,9 +207,12 @@ export function useFemales(farmId: string | null | undefined) {
     });
     const customOnly = custom.filter(c => !(BASE_FEMALES as Female[]).some(b => b.id === c.id));
     return [...merged, ...customOnly];
-  }, [females, femaleRows]);
+  }, [females, femaleRows, isDemoUser]);
 
   const catalogFemaleRows = useMemo(() => {
+    // Demo user: retorna apenas as rows fictícias, sem mesclar com dados reais
+    if (isDemoUser) return femaleRows;
+
     if (femaleRows.length === 0) {
       return (BASE_FEMALES as Female[]).map((b, i) => ({
         id: `female-${i}`,
