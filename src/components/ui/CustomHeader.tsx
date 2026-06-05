@@ -110,10 +110,11 @@ export function CustomHeader({ farm, activeTab, onTabChange }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
+  const isDemoUser = session?.user?.email === 'demo@gmail.com';
 
   // Format owner name to display
-  const ownerName = farm?.owner_name || 'PEDRO HENRIQUE CAVALLI';
-  const farmName = farm?.name || 'Granja Cavalli';
+  const ownerName = isDemoUser ? 'user' : (farm?.owner_name || 'PEDRO HENRIQUE CAVALLI');
+  const farmName = isDemoUser ? 'Fazenda Teste' : (farm?.name || 'Granja Cavalli');
 
   const handleSignOut = async () => {
     setMenuOpen(false);

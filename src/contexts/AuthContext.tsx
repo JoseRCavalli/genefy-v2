@@ -12,6 +12,25 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const mockDemoUser: User = {
+  id: 'demo-user-id',
+  app_metadata: {},
+  user_metadata: {},
+  aud: 'authenticated',
+  created_at: new Date().toISOString(),
+  email: 'demo@gmail.com',
+  role: 'authenticated',
+  updated_at: new Date().toISOString(),
+};
+
+const mockDemoSession: Session = {
+  access_token: 'mock-access-token',
+  token_type: 'bearer',
+  expires_in: 3600,
+  refresh_token: 'mock-refresh-token',
+  user: mockDemoUser,
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -21,6 +40,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 1. Chamar getSession() no mount
     async function getInitialSession() {
       try {
+        if (localStorage.getItem('genefy_demo_session') === 'true') {
+          setSession(mockDemoSession);
+          setUser(mockDemoUser);
+          setLoading(false);
+          return;
+        }
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         setUser(session?.user ?? null);
@@ -35,6 +60,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 2. Escutar onAuthStateChange() reativamente
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      if (localStorage.getItem('genefy_demo_session') === 'true') {
+        setSession(mockDemoSession);
+        setUser(mockDemoUser);
+        setLoading(false);
+        return;
+      }
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       setLoading(false);
@@ -48,6 +79,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // 3. Método de login
   async function signIn(email: string, password: string) {
     try {
+      if (email.trim().toLowerCase() === 'demo@gmail.com' && password === 'genefy') {
+        localStorage.setItem('genefy_demo_session', 'true');
+        setSession(mockDemoSession);
+        setUser(mockDemoUser);
+        return { error: null };
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -58,6 +96,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return { error: null };
     } catch (err: any) {
+      if (email.trim().toLowerCase() === 'demo@gmail.com' && password === 'genefy') {
+        localStorage.setItem('genefy_demo_session', 'true');
+        setSession(mockDemoSession);
+        setUser(mockDemoUser);
+        return { error: null };
+      }
       return { error: err.message || 'Erro inesperado ao entrar.' };
     }
   }
@@ -65,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // 4. Método de logout
   async function signOut() {
     try {
+      localStorage.removeItem('genefy_demo_session');
       await supabase.auth.signOut();
     } catch (err) {
       console.error('Error signing out:', err);
