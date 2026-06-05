@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase, FemaleRow } from '../lib/supabase';
 import { BASE_FEMALES } from '../lib/data';
+import { DEMO_FEMALES } from '../lib/demo-females';
 import type { Female } from '../lib/genetics';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -85,8 +86,8 @@ export function rowToFemale(r: FemaleRow): Female {
   };
 }
 
-export function mapBaseFemalesToRows(farmId: string): FemaleRow[] {
-  return (BASE_FEMALES as Female[]).map((b, i) => ({
+export function mapBaseFemalesToRows(farmId: string, source?: Female[]): FemaleRow[] {
+  return (source ?? BASE_FEMALES as Female[]).map((b, i) => ({
     id: `female-${i}`,
     farm_id: farmId,
     animal_id: b.id,
@@ -172,7 +173,7 @@ export function useFemales(farmId: string | null | undefined) {
 
   const reload = useCallback(async () => {
     if (isDemoUser) {
-      const rows = mapBaseFemalesToRows(farmId ?? 'demo-farm-id');
+      const rows = mapBaseFemalesToRows(farmId ?? 'demo-farm-id', DEMO_FEMALES);
       setFemaleRows(rows);
       setFemales(rows.map(rowToFemale));
       return;
