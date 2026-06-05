@@ -9,7 +9,7 @@ import { PerfilProgenieModal } from '../matching/PerfilProgenie';
 import { calcularIndicesProgenie } from '../../utils/calcularProgenie';
 import type { PerfilProgenieProps } from '../../types/PerfilProgenie.types';
 
-const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
+const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 import { ensureBullInDb } from '../../hooks/useTank';
 

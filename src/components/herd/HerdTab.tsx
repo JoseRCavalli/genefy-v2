@@ -10,7 +10,7 @@ import {
 import type { FemaleRow } from '../../lib/supabase';
 import { useClickOutside } from '../../hooks/useClickOutside';
 
-const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
+const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 // ── Tipos internos ────────────────────────────────────────────────────────────
 

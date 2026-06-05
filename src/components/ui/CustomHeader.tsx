@@ -109,7 +109,7 @@ export function CustomHeader({ farm, activeTab, onTabChange }: Props) {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
+  const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
   const isDemoUser = session?.user?.email === 'demo@gmail.com';
 
   // Format owner name to display

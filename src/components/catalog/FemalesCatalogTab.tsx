@@ -69,7 +69,7 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
   [femaleRows]);
 
   // Detectar fêmeas "custom" (adicionadas manualmente)
-  const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
+  const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
   const customIds = useMemo(() => {
     if (IS_DEMO) {
       return new Set(

@@ -29,7 +29,7 @@ import {
 
 import type { Female } from '../lib/matching';
 
-const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
+const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 // ── Demo wrapper ──────────────────────────────────────────────────────────────
 function DemoApp() {
