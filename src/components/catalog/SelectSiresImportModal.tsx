@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { X, Upload, CheckCircle, AlertCircle } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { parseSelectSiresCSV } from '../../lib/select-sires-parser';
 import type { SelectSiresBull } from '../../lib/select-sires-parser';
 
@@ -50,30 +49,25 @@ export function SelectSiresImportModal({ farmId, onDone, onClose }: Props) {
     setStatus('importing');
     setMessage('');
 
-    const BATCH = 50;
+    // Upsert em lote agora roda no servidor (RLS via sessão do usuário)
     let inserted = 0;
     let errors = 0;
-
-    for (let i = 0; i < parsed.length; i += BATCH) {
-      const batch = parsed.slice(i, i + BATCH).map(({ _matched, ...bull }) => ({
-        ...bull,
-        farm_id: farmId,
-      }));
-
-      const { error } = await supabase
-        .from('bulls')
-        .upsert(batch, { onConflict: 'farm_id,code' });
-
-      if (error) {
-        // Fallback: try individual inserts
-        for (const row of batch) {
-          const { error: e2 } = await supabase.from('bulls').upsert(row, { onConflict: 'farm_id,code' });
-          if (e2) errors++;
-          else inserted++;
-        }
+    try {
+      const res = await fetch('/api/bulls/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          farmId,
+          bulls: parsed.map(({ _matched, ...bull }) => bull),
+        }),
+      });
+      if (res.ok) {
+        ({ inserted, errors } = await res.json());
       } else {
-        inserted += batch.length;
+        errors = parsed.length;
       }
+    } catch {
+      errors = parsed.length;
     }
 
     if (errors > 0) {
