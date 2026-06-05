@@ -87,6 +87,7 @@ export function FullAnalysisTab({
   }, [allBulls]);
 
   function startCalculation() {
+    if (typeof window === 'undefined') return; // Worker só existe no client
     if (workerRef.current) workerRef.current.terminate();
 
     const worker = new Worker(new URL('../../workers/matrixWorker.ts', import.meta.url), { type: 'module' });
