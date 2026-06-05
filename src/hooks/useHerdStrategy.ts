@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { supabase } from '../lib/supabase';
-import type { FemaleRow, MatingRow } from '../lib/supabase';
+import type { FemaleRow } from '../lib/supabase';
 import type { Female, WeightMap } from '../lib/genetics';
 import { calculateFemaleMeritScore } from '../lib/matching';
 import type {
@@ -16,6 +15,7 @@ import {
 } from '../types/herd-strategy.types';
 
 const LS_STRATEGY = 'genefy_demo_herd_strategy';
+const LS_STRATEGY_DEMO_ACCOUNT = 'genefy_demo_account_herd_strategy';
 
 export function useHerdStrategy(
   farmId: string | null | undefined,
@@ -23,15 +23,18 @@ export function useHerdStrategy(
   femaleRows: FemaleRow[],
   weights: WeightMap
 ) {
-  const isDemo = farmId === 'demo-farm' || !farmId;
+  // 'demo-farm' = DemoApp (NEXT_PUBLIC_DEMO_MODE); 'demo-account-farm' = conta
+  // demo@gmail.com — ambos 100% client-side via localStorage, sem API.
+  const isDemo = farmId === 'demo-farm' || farmId === 'demo-account-farm' || !farmId;
+  const lsKey = farmId === 'demo-account-farm' ? LS_STRATEGY_DEMO_ACCOUNT : LS_STRATEGY;
 
   const [strategy, setStrategyState] = useState<HerdStrategy>(() => {
     if (isDemo) {
       try {
-        const saved = localStorage.getItem(LS_STRATEGY);
-        return saved ? JSON.parse(saved) : { ...DEFAULT_HERD_STRATEGY, farm_id: 'demo-farm' };
+        const saved = localStorage.getItem(lsKey);
+        return saved ? JSON.parse(saved) : { ...DEFAULT_HERD_STRATEGY, farm_id: farmId || 'demo-farm' };
       } catch {
-        return { ...DEFAULT_HERD_STRATEGY, farm_id: 'demo-farm' };
+        return { ...DEFAULT_HERD_STRATEGY, farm_id: farmId || 'demo-farm' };
       }
     }
     return { ...DEFAULT_HERD_STRATEGY, farm_id: farmId || '' };
@@ -42,37 +45,21 @@ export function useHerdStrategy(
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Carregar dados de estratégia do banco de dados (se não for demo)
+  // Carregar dados de estratégia via API (get-or-create no servidor)
   const loadStrategy = useCallback(async () => {
     if (isDemo || !farmId) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('herd_strategy')
-        .select('*')
-        .eq('farm_id', farmId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error loading strategy:', error);
-      } else if (data) {
+      const res = await fetch(`/api/herd-strategy?farmId=${encodeURIComponent(farmId)}`, { cache: 'no-store' });
+      if (!res.ok) {
+        console.error('Error loading strategy:', (await res.json()).error);
+      } else {
+        const data = await res.json();
         setStrategyState({
           ...data,
           semen_costs: data.semen_costs || DEFAULT_HERD_STRATEGY.semen_costs,
         });
         setHasUnsavedChanges(false);
-      } else {
-        // Se não existir, criar com os valores default
-        const newStrategy = { ...DEFAULT_HERD_STRATEGY, farm_id: farmId };
-        const { error: insertError } = await supabase
-          .from('herd_strategy')
-          .insert(newStrategy);
-        if (insertError) {
-          console.error('Error creating default strategy:', insertError);
-        } else {
-          setStrategyState(newStrategy as HerdStrategy);
-          setHasUnsavedChanges(false);
-        }
       }
     } catch (err) {
       console.error(err);
@@ -89,22 +76,11 @@ export function useHerdStrategy(
       return;
     }
     try {
-      const { data, error } = await supabase
-        .from('matings')
-        .select('female_id, status')
-        .eq('farm_id', farmId)
-        .eq('status', 'failed');
-
-      if (error) {
-        console.error('Error loading failed matings:', error);
-      } else if (data) {
-        const counts: Record<string, number> = {};
-        data.forEach((m: Partial<MatingRow>) => {
-          if (m.female_id) {
-            counts[m.female_id] = (counts[m.female_id] || 0) + 1;
-          }
-        });
-        setFailedMatingsCount(counts);
+      const res = await fetch(`/api/matings/failed-counts?farmId=${encodeURIComponent(farmId)}`, { cache: 'no-store' });
+      if (!res.ok) {
+        console.error('Error loading failed matings:', (await res.json()).error);
+      } else {
+        setFailedMatingsCount((await res.json()) as Record<string, number>);
       }
     } catch (err) {
       console.error(err);
@@ -134,16 +110,19 @@ export function useHerdStrategy(
     setIsSaving(true);
     try {
       if (isDemo) {
-        localStorage.setItem(LS_STRATEGY, JSON.stringify(strategy));
+        localStorage.setItem(lsKey, JSON.stringify(strategy));
         setHasUnsavedChanges(false);
         return null;
       } else if (farmId) {
-        const { error } = await supabase
-          .from('herd_strategy')
-          .upsert({ ...strategy, farm_id: farmId, updated_at: new Date().toISOString() });
-        if (error) {
-          console.error('Error saving strategy:', error);
-          return error;
+        const res = await fetch('/api/herd-strategy', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ farmId, strategy }),
+        }).catch(() => null);
+        if (!res?.ok) {
+          const msg = res ? (await res.json()).error : 'Erro de rede';
+          console.error('Error saving strategy:', msg);
+          return new Error(msg);
         }
         setHasUnsavedChanges(false);
         return null;
