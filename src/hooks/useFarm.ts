@@ -1,8 +1,20 @@
 import { useEffect, useState } from 'react';
-import { supabase, FarmRow } from '../lib/supabase';
+import { FarmRow } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 const DEMO_FARM_ID_KEY = 'genefy_farm_id';
+
+/**
+ * Conta demo (demo@gmail.com): farm fixa client-side, sem tocar no banco.
+ * A sessão mock não tem cookies Supabase, então a API interna respondería 401
+ * de qualquer forma — dados reais de rebanho são inalcançáveis por construção.
+ */
+const DEMO_ACCOUNT_FARM: FarmRow = {
+  id: 'demo-account-farm',
+  name: 'Fazenda Teste',
+  owner_name: 'user',
+  created_at: '2026-01-01T00:00:00.000Z',
+};
 
 export function useFarm() {
   const { user } = useAuth();
@@ -10,54 +22,34 @@ export function useFarm() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
       if (user?.email === 'demo@gmail.com') {
-        try {
-          // Query if 'Fazenda Teste' already exists
-          let { data } = await supabase
-            .from('farms')
-            .select('*')
-            .eq('name', 'Fazenda Teste')
-            .maybeSingle();
+        setFarm(DEMO_ACCOUNT_FARM);
+        setLoading(false);
+        return;
+      }
 
-          if (!data) {
-            // Create 'Fazenda Teste' if it doesn't exist
-            const { data: newFarm, error } = await supabase
-              .from('farms')
-              .insert({ name: 'Fazenda Teste', owner_name: 'user' })
-              .select()
-              .single();
-            if (newFarm) {
-              data = newFarm;
-            } else if (error) {
-              console.error('Error creating demo farm:', error);
-            }
-          }
-
-          if (data) {
+      try {
+        const stored = localStorage.getItem(DEMO_FARM_ID_KEY);
+        const qs = stored ? `?id=${encodeURIComponent(stored)}` : '';
+        const res = await fetch(`/api/farm${qs}`, { cache: 'no-store' });
+        if (res.ok) {
+          const data: FarmRow | null = await res.json();
+          if (!cancelled && data) {
+            localStorage.setItem(DEMO_FARM_ID_KEY, data.id);
             setFarm(data);
-            setLoading(false);
-            return;
           }
-        } catch (err) {
-          console.error('Failed to load demo farm:', err);
         }
+      } catch (err) {
+        console.error('Failed to load farm:', err);
       }
-
-      const stored = localStorage.getItem(DEMO_FARM_ID_KEY);
-      if (stored) {
-        const { data } = await supabase.from('farms').select('*').eq('id', stored).single();
-        if (data) { setFarm(data); setLoading(false); return; }
-      }
-      // fallback: first farm
-      const { data } = await supabase.from('farms').select('*').limit(1).single();
-      if (data) {
-        localStorage.setItem(DEMO_FARM_ID_KEY, data.id);
-        setFarm(data);
-      }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
+
     load();
+    return () => { cancelled = true; };
   }, [user]);
 
   return { farm, loading };
