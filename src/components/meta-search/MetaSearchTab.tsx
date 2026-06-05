@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
 import type { Bull, Female, MetaGoals, MetaResult } from '../../lib/matching';
-import { searchByGoal, fmt, inbClass } from '../../lib/matching';
+import { fmt, inbClass } from '../../lib/matching';
+import { useAuth } from '../../contexts/AuthContext';
+import { calcMetaSearch, isLocalCalc } from '../../lib/calc-client';
 
 interface Props {
   females: Female[];
   allBulls: Bull[];
   tankBulls: Bull[];
   weights: Record<string, number | undefined>;
+  farmId?: string;
 }
 
 const GOAL_FIELDS: { key: keyof MetaGoals; label: string; step?: number }[] = [
@@ -19,7 +22,8 @@ const GOAL_FIELDS: { key: keyof MetaGoals; label: string; step?: number }[] = [
   { key: 'dpr', label: 'DPR alvo', step: 0.5 },
 ];
 
-export function MetaSearchTab({ females, allBulls, tankBulls }: Props) {
+export function MetaSearchTab({ females, allBulls, tankBulls, farmId }: Props) {
+  const { user } = useAuth();
   const [goals, setGoals] = useState<Partial<MetaGoals>>({});
   const [results, setResults] = useState<MetaResult[]>([]);
   const [running, setRunning] = useState(false);
@@ -29,11 +33,24 @@ export function MetaSearchTab({ females, allBulls, tankBulls }: Props) {
     setGoals(g => ({ ...g, [key]: value === '' ? undefined : parseFloat(value) }));
   }
 
-  function run() {
+  // Busca roda no servidor (genetics.ts via /api/calc/meta-search); local em demo
+  async function run() {
     setRunning(true);
     const bulls = tankOnly ? tankBulls : allBulls;
-    const res = searchByGoal(females, bulls, goals as MetaGoals);
-    setResults(res.slice(0, 10));
+    try {
+      const res = await calcMetaSearch({
+        local: isLocalCalc(user?.email) || !farmId,
+        farmId: farmId ?? '',
+        females,
+        bulls,
+        bullsIsFullSet: !tankOnly,
+        goals: goals as MetaGoals,
+      });
+      setResults(res.slice(0, 10));
+    } catch (err) {
+      console.error('[MetaSearchTab] calcMetaSearch:', err);
+      setResults([]);
+    }
     setRunning(false);
   }
 

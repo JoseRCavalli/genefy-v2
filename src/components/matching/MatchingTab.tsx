@@ -1,16 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import type { Bull, Female, WeightMap } from '../../lib/matching';
-import { getTop3Options } from '../../lib/matching';
 import { BullOptionCard } from './BullOptionCard';
 import type { BullRow, FemaleRow } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { insertDemoMating } from '../../lib/demo-matings';
+import { calcTop3, isLocalCalc, type MatchOption } from '../../lib/calc-client';
 
 import type { FemaleAssignment } from '../../types/herd-strategy.types';
 import { GROUP_LABELS, GROUP_COLORS } from '../../types/herd-strategy.types';
-
-type MatchOption = ReturnType<typeof getTop3Options>[number];
 
 interface Props {
   female: Female | null;
@@ -45,12 +43,34 @@ export function MatchingTab({
     return Array.from(seen).sort();
   }, [allBulls]);
 
-  const options = useMemo((): MatchOption[] => {
-    if (!female) return [];
-    const base = tankOnly ? tankBulls : allBulls;
-    const bulls = catalogFilter ? base.filter(b => (b.catalog ?? 'CDCB') === catalogFilter) : base;
-    return getTop3Options(female, bulls, weights, maxInb, a2a2Only, useRel);
-  }, [female, allBulls, tankBulls, weights, maxInb, a2a2Only, tankOnly, useRel, catalogFilter]);
+  // Cálculo no servidor (genetics.ts via /api/calc/top3); local apenas em demo
+  const [options, setOptions] = useState<MatchOption[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!female) { setOptions([]); return; }
+      const base = tankOnly ? tankBulls : allBulls;
+      const bulls = catalogFilter ? base.filter(b => (b.catalog ?? 'CDCB') === catalogFilter) : base;
+      try {
+        const result = await calcTop3({
+          local: isLocalCalc(user?.email),
+          farmId,
+          females: [female],
+          bulls,
+          bullsIsFullSet: !tankOnly && !catalogFilter,
+          weights,
+          maxInb,
+          a2a2Only,
+          useRel,
+        });
+        if (!cancelled) setOptions(result[female.id] ?? []);
+      } catch (err) {
+        console.error('[MatchingTab] calcTop3:', err);
+        if (!cancelled) setOptions([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [female, allBulls, tankBulls, weights, maxInb, a2a2Only, tankOnly, useRel, catalogFilter, farmId, user?.email]);
 
   async function handleSave(opt: MatchOption, rank: number, isSexed: boolean) {
     if (!female) return;

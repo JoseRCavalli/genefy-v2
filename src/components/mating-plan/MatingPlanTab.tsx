@@ -1,11 +1,11 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { X, Calculator, Save, Printer, CheckCircle, Dna } from 'lucide-react';
 import type { Bull, Female, WeightMap, PlanResult } from '../../lib/matching';
-import { runMatingPlan, inb, fmt, inbClass } from '../../lib/matching';
+import { inb, fmt, inbClass } from '../../lib/matching';
+import { calcMatingPlan, calcProgeny } from '../../lib/calc-client';
 import type { BullRow, FemaleRow } from '../../lib/supabase';
 import type { TankEntry } from '../../hooks/useTank';
 import { PerfilProgenieModal } from '../matching/PerfilProgenie';
-import { calcularIndicesProgenie } from '../../utils/calcularProgenie';
 import type { PerfilProgenieProps } from '../../types/PerfilProgenie.types';
 import { useAuth } from '../../contexts/AuthContext';
 import { insertDemoMating } from '../../lib/demo-matings';
@@ -286,8 +286,12 @@ export function MatingPlanTab({
   const [saveMsg, setSaveMsg] = useState('');
   const [progenieAberta, setProgenieAberta] = useState<PerfilProgenieProps | null>(null);
 
-  function handleVerProgenie(female: Female, bull: Bull) {
-    setProgenieAberta(calcularIndicesProgenie(female, bull));
+  async function handleVerProgenie(female: Female, bull: Bull) {
+    try {
+      setProgenieAberta(await calcProgeny({ local: IS_DEMO || isDemoUser, farmId, female, bull }));
+    } catch (err) {
+      console.error('[MatingPlanTab] calcProgeny:', err);
+    }
   }
 
   const results = useMemo(() => {
@@ -328,14 +332,29 @@ export function MatingPlanTab({
   function addFemale(f: Female) { setSelected(v => [...v, f]); setSearch(''); setShowDropdown(false); setResults([]); setSaveMsg(''); }
   function removeFemale(id: string) { setSelected(v => v.filter(f => f.id !== id)); setResults([]); setSaveMsg(''); }
 
+  // Plano roda no servidor (genetics.ts via /api/calc/mating-plan); local em demo
+  async function runPlan(femalesToPlan: Female[]) {
+    try {
+      const planResults = await calcMatingPlan({
+        local: IS_DEMO || isDemoUser,
+        farmId,
+        females: femalesToPlan,
+        tank: tank.map(e => [e.bull.code, e.doses]),
+        allBulls,
+        weights,
+        maxInb,
+      });
+      setResults(planResults);
+      setSaveMsg('');
+    } catch (err) {
+      console.error('[MatingPlanTab] calcMatingPlan:', err);
+    }
+  }
+
   function calculate() {
     if (selected.length === 0) return;
-    const tankMap = new Map<string, { doses: number | null }>(
-      tank.map(e => [e.bull.code, { doses: e.doses }])
-    );
     setOverrides({});
-    setResults(runMatingPlan(selected, tankMap, allBulls, weights, maxInb));
-    setSaveMsg('');
+    runPlan(selected);
   }
 
   // Auto-recalcular quando maxInb, pesos ou botijão mudam (só se já há resultados)
@@ -346,11 +365,7 @@ export function MatingPlanTab({
 
   useEffect(() => {
     if (!hasResultsRef.current || selectedRef.current.length === 0) return;
-    const tankMap = new Map<string, { doses: number | null }>(
-      tank.map(e => [e.bull.code, { doses: e.doses }])
-    );
-    setResults(runMatingPlan(selectedRef.current, tankMap, allBulls, weights, maxInb));
-    setSaveMsg('');
+    runPlan(selectedRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maxInb, weights, tank]);
 

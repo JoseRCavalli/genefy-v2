@@ -493,6 +493,7 @@ function SupabaseApp() {
               allBulls={bulls}
               tankBulls={tankBulls}
               weights={weights}
+              farmId={farm.id}
             />
           )}
           {activeTab === 'history' && <HistoryTab farmId={farm.id} />}

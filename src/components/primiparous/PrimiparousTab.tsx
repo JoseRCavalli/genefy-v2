@@ -1,9 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Lightbulb, Circle, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Bull, Female, WeightMap } from '../../lib/matching';
-import { getTop3Options } from '../../lib/matching';
+import { calcTop3, isLocalCalc, type MatchOption } from '../../lib/calc-client';
 
-type MatchOption = ReturnType<typeof getTop3Options>[number];
 type MatchResult = { bull: Bull; inbreeding: number; score: number; carriers: string[]; isCustom: boolean };
 import type { FemaleRow, BullRow } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -49,6 +48,35 @@ export function PrimiparousTab({
     females.filter(f => femaleRows.find(r => r.animal_id === f.id && r.is_primiparous)),
     [females, femaleRows]
   );
+
+  // Top 3 por primípara em lote no servidor (genetics.ts via /api/calc/top3);
+  // local apenas em demo
+  const [optionsMap, setOptionsMap] = useState<Record<string, MatchOption[]>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (primiparousFemales.length === 0) { setOptionsMap({}); return; }
+      const bulls = allBulls.length > 0 ? (tankBulls.length > 0 ? tankBulls : allBulls) : allBulls;
+      try {
+        const result = await calcTop3({
+          local: isLocalCalc(user?.email),
+          farmId,
+          females: primiparousFemales,
+          bulls,
+          bullsIsFullSet: tankBulls.length === 0,
+          weights,
+          maxInb,
+          a2a2Only,
+          useRel,
+        });
+        if (!cancelled) setOptionsMap(result);
+      } catch (err) {
+        console.error('[PrimiparousTab] calcTop3:', err);
+        if (!cancelled) setOptionsMap({});
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [primiparousFemales, allBulls, tankBulls, weights, maxInb, a2a2Only, useRel, farmId, user?.email]);
 
   async function togglePrimiparous(row: FemaleRow) {
     const newValue = !row.is_primiparous;
@@ -167,8 +195,7 @@ export function PrimiparousTab({
         <div className="space-y-6">
           <h3 className="font-semibold text-gray-700">Opções de Matching para Primíparas</h3>
           {primiparousFemales.map(female => {
-            const bulls = allBulls.length > 0 ? (tankBulls.length > 0 ? tankBulls : allBulls) : allBulls;
-            const options: MatchOption[] = getTop3Options(female, bulls, weights, maxInb, a2a2Only, useRel);
+            const options: MatchOption[] = optionsMap[female.id] ?? [];
             const asResult = (o: MatchOption): MatchResult => ({
               bull: o.bull, inbreeding: o.inbreeding, score: o.score,
               carriers: o.carriers, isCustom: o.bull._custom ?? false,

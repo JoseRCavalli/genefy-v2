@@ -3,48 +3,10 @@ import { BullRow } from '../lib/supabase';
 import { CATALOG_BULLS } from '../lib/catalog-bulls';
 import { getBrandFromCode } from '../lib/naab-brands';
 import { useAuth } from '../contexts/AuthContext';
+import { rowToBull } from '../lib/row-mappers';
 import type { Bull } from '../lib/genetics';
 
 const ALL_BASE_BULLS: Bull[] = CATALOG_BULLS;
-
-function rowToBull(r: BullRow): Bull {
-  return {
-    code: r.code,
-    name: r.short_name ?? r.code,
-    short_name: r.short_name ?? undefined,
-    full_name: r.full_name ?? undefined,
-    gtpi: r.gtpi,
-    net_merit: r.net_merit,
-    milk: r.milk,
-    protein: r.protein,
-    fat: r.fat,
-    productive_life: r.productive_life,
-    scs: r.scs,
-    dpr: r.dpr,
-    hcr: r.hcr,
-    ccr: r.ccr,
-    fertility_index: r.fertility_index,
-    ptat: r.ptat,
-    udc: r.udc,
-    flc: r.flc,
-    feed_saved: r.feed_saved,
-    gfi: r.gfi,
-    cow_livability: r.cow_livability,
-    sire_calving_ease: r.sire_calving_ease,
-    beta_casein: r.beta_casein,
-    kappa_casein: r.kappa_casein,
-    HH1: r.hh1,
-    HH2: r.hh2,
-    HH3: r.hh3,
-    HH4: r.hh4,
-    HH5: r.hh5,
-    HH6: r.hh6,
-    reliability: r.reliability,
-    price_per_dose: r.price_per_dose,
-    catalog: r.catalog ?? getBrandFromCode(r.code),
-    _custom: r.is_custom,
-  };
-}
 
 function bullToPseudoRow(b: Bull): BullRow {
   return {
