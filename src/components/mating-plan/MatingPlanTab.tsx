@@ -10,8 +10,6 @@ import type { PerfilProgenieProps } from '../../types/PerfilProgenie.types';
 import { useAuth } from '../../contexts/AuthContext';
 import { insertDemoMating } from '../../lib/demo-matings';
 
-const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-
 interface Props {
   females: Female[];
   allBulls: Bull[];
@@ -288,7 +286,7 @@ export function MatingPlanTab({
 
   async function handleVerProgenie(female: Female, bull: Bull) {
     try {
-      setProgenieAberta(await calcProgeny({ local: IS_DEMO || isDemoUser, farmId, female, bull }));
+      setProgenieAberta(await calcProgeny({ local: isDemoUser, farmId, female, bull }));
     } catch (err) {
       console.error('[MatingPlanTab] calcProgeny:', err);
     }
@@ -336,7 +334,7 @@ export function MatingPlanTab({
   async function runPlan(femalesToPlan: Female[]) {
     try {
       const planResults = await calcMatingPlan({
-        local: IS_DEMO || isDemoUser,
+        local: isDemoUser,
         farmId,
         females: femalesToPlan,
         tank: tank.map(e => [e.bull.code, e.doses]),
@@ -388,26 +386,6 @@ export function MatingPlanTab({
 
   async function saveAll() {
     setSaving(true);
-
-    if (IS_DEMO) {
-      // Modo demo: salvar no localStorage
-      const key = `genefy_plan_${Date.now()}`;
-      const payload = results.filter(r => r.bull).map(r => ({
-        female: r.female.id,
-        bull: r.bull!.code,
-        bullName: r.bull!.name ?? '',
-        score: r.score,
-        inbreeding: r.inbreeding,
-        savedAt: new Date().toISOString(),
-      }));
-      localStorage.setItem(key, JSON.stringify(payload));
-      // Debitar doses do botijão
-      await deductDosesFromTank();
-      setSaving(false);
-      setSaveMsg(`✅ ${payload.length} acasalamentos salvos (demo). Doses debitadas do botijão.`);
-      if (onNavigate) onNavigate('history');
-      return;
-    }
 
     // Conta demo: histórico local por browser, sem tocar no banco
     let count = 0;
@@ -552,11 +530,6 @@ export function MatingPlanTab({
             <CheckCircle size={14} className="shrink-0 mt-0.5" />
             <div>
               <div>{saveMsg}</div>
-              {IS_DEMO && (
-                <div className="mt-1 text-green-600">
-                  Em produção (com Supabase), os acasalamentos ficam salvos na aba <strong>Histórico</strong> com status <em>Planejado</em> — e você atualiza para Executado/Prenha conforme ocorre.
-                </div>
-              )}
             </div>
           </div>
         )}

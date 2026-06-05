@@ -14,7 +14,6 @@ import {
   DEFAULT_HERD_STRATEGY,
 } from '../types/herd-strategy.types';
 
-const LS_STRATEGY = 'genefy_demo_herd_strategy';
 const LS_STRATEGY_DEMO_ACCOUNT = 'genefy_demo_account_herd_strategy';
 
 export function useHerdStrategy(
@@ -23,10 +22,9 @@ export function useHerdStrategy(
   femaleRows: FemaleRow[],
   weights: WeightMap
 ) {
-  // 'demo-farm' = DemoApp (NEXT_PUBLIC_DEMO_MODE); 'demo-account-farm' = conta
-  // demo@gmail.com — ambos 100% client-side via localStorage, sem API.
-  const isDemo = farmId === 'demo-farm' || farmId === 'demo-account-farm' || !farmId;
-  const lsKey = farmId === 'demo-account-farm' ? LS_STRATEGY_DEMO_ACCOUNT : LS_STRATEGY;
+  // 'demo-account-farm' = conta demo@gmail.com — estratégia em localStorage, sem API.
+  const isDemo = farmId === 'demo-account-farm' || !farmId;
+  const lsKey = LS_STRATEGY_DEMO_ACCOUNT;
 
   const [strategy, setStrategyState] = useState<HerdStrategy>(() => {
     if (isDemo) {

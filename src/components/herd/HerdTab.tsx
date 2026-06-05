@@ -10,8 +10,6 @@ import {
 import type { FemaleRow } from '../../lib/supabase';
 import { useClickOutside } from '../../hooks/useClickOutside';
 
-const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-
 // ── Tipos internos ────────────────────────────────────────────────────────────
 
 interface Props {
@@ -428,15 +426,8 @@ export function HerdTab({
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Fêmeas custom (apenas as adicionadas pelo usuário)
-  const customFemaleRows = useMemo(() => {
-    if (IS_DEMO) {
-      // Em demo mode, as linhas base têm id='female-{número}', as novas têm 'female-new-{timestamp}'
-      return femaleRows.filter(r => r.id.startsWith('female-new-') || !r.id.match(/^female-\d+$/));
-    }
-    // Em Supabase mode, todas as femaleRows vêm do banco = custom
-    return femaleRows;
-  }, [femaleRows]);
+  // Fêmeas custom: todas as femaleRows vêm do banco = custom
+  const customFemaleRows = useMemo(() => femaleRows, [femaleRows]);
 
   // Contagem de fêmeas customizadas por categoria
   const counts = useMemo(() => {

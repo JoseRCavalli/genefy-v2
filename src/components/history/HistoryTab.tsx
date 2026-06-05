@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, Fragment } from 'react';
-import { CheckCircle, Baby, XCircle, RefreshCw, Trash2, ClipboardList, Syringe, Leaf, AlertOctagon, FlaskConical, Circle, Dna, ChevronRight } from 'lucide-react';
+import { CheckCircle, Baby, XCircle, RefreshCw, Trash2, ClipboardList, Syringe, Leaf, AlertOctagon, Circle, Dna, ChevronRight } from 'lucide-react';
 import type { MatingRow, FemaleRow, BullRow } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { listDemoMatings, updateDemoMatingStatus, deleteDemoMating } from '../../lib/demo-matings';
@@ -11,7 +11,6 @@ type MatingStatus = MatingRow['status'];
 
 interface Props {
   farmId: string;
-  demoMode?: boolean;
 }
 
 const STATUS_LABELS: Record<MatingStatus, string> = {
@@ -28,20 +27,10 @@ const STATUS_COLORS: Record<MatingStatus, string> = {
   failed: 'bg-red-50 text-red-600',
 };
 
-export function HistoryTab({ farmId, demoMode }: Props) {
+export function HistoryTab({ farmId }: Props) {
   const { user } = useAuth();
   const isDemoUser = user?.email === 'demo@gmail.com';
 
-  if (demoMode) {
-    return (
-      <div className="p-6 max-w-2xl mx-auto text-center space-y-4">
-        <h2 className="text-lg font-bold text-blue-dark">Histórico de Acasalamentos</h2>
-        <div className="p-6 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
-          <FlaskConical size={14} className="inline mr-1" /> O histórico requer Supabase configurado. Em modo demo, os acasalamentos planejados ficam apenas na sessão.
-        </div>
-      </div>
-    );
-  }
   const [matings, setMatings] = useState<(MatingRow & { females?: FemaleRow; bulls?: BullRow })[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<MatingStatus | ''>('');

@@ -69,17 +69,7 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
   [femaleRows]);
 
   // Detectar fêmeas "custom" (adicionadas manualmente)
-  const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-  const customIds = useMemo(() => {
-    if (IS_DEMO) {
-      return new Set(
-        femaleRows
-          .filter(r => r.id.startsWith('female-new-') || !r.id.match(/^female-\d+$/))
-          .map(r => r.animal_id)
-      );
-    }
-    return new Set(femaleRows.map(r => r.animal_id));
-  }, [femaleRows, IS_DEMO]);
+  const customIds = useMemo(() => new Set(femaleRows.map(r => r.animal_id)), [femaleRows]);
 
   const breeds = useMemo(() => {
     const s = new Set(females.map(f => f.breed ?? 'HO').filter(Boolean));

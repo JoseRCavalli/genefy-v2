@@ -108,7 +108,6 @@ export function CustomHeader({ farm, activeTab, onTabChange }: Props) {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
   const isDemoUser = session?.user?.email === 'demo@gmail.com';
 
   // Format owner name to display
@@ -117,12 +116,7 @@ export function CustomHeader({ farm, activeTab, onTabChange }: Props) {
 
   const handleSignOut = async () => {
     setMenuOpen(false);
-    if (isDemoMode) {
-      alert('Saindo do Modo Demo. A página será recarregada.');
-      window.location.reload();
-    } else {
-      await signOut();
-    }
+    await signOut();
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
@@ -142,40 +136,26 @@ export function CustomHeader({ farm, activeTab, onTabChange }: Props) {
 
     setLoading(true);
 
-    if (isDemoMode) {
-      // Mock change for demo mode
-      setTimeout(() => {
-        setSuccess('Senha alterada com sucesso no simulador demo!');
-        setLoading(false);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        setSuccess('Senha alterada com sucesso no banco de dados!');
         setNewPassword('');
         setConfirmPassword('');
         setTimeout(() => {
           setShowPasswordModal(false);
           setSuccess(null);
         }, 2000);
-      }, 1200);
-    } else {
-      try {
-        const { error } = await supabase.auth.updateUser({
-          password: newPassword,
-        });
-
-        if (error) {
-          setError(error.message);
-        } else {
-          setSuccess('Senha alterada com sucesso no banco de dados!');
-          setNewPassword('');
-          setConfirmPassword('');
-          setTimeout(() => {
-            setShowPasswordModal(false);
-            setSuccess(null);
-          }, 2000);
-        }
-      } catch (err: any) {
-        setError(err.message || 'Ocorreu um erro ao atualizar a senha.');
-      } finally {
-        setLoading(false);
       }
+    } catch (err: any) {
+      setError(err.message || 'Ocorreu um erro ao atualizar a senha.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -239,7 +219,7 @@ export function CustomHeader({ farm, activeTab, onTabChange }: Props) {
                 <div className="absolute right-0 mt-2 w-52 bg-white rounded-lg shadow-xl py-1.5 border border-gray-100 z-50 text-gray-800 animate-in fade-in slide-in-from-top-2 duration-150">
                   <div className="px-4 py-2 border-b border-gray-100 text-left">
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Configurações</p>
-                    <p className="text-xs font-semibold text-gray-700 truncate">{isDemoMode ? 'Usuário Demo' : session?.user?.email}</p>
+                    <p className="text-xs font-semibold text-gray-700 truncate">{session?.user?.email}</p>
                   </div>
                   
                   <button
@@ -319,15 +299,6 @@ export function CustomHeader({ farm, activeTab, onTabChange }: Props) {
               </button>
             </div>
 
-            {/* Warning for Demo mode */}
-            {isDemoMode && (
-              <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-2 text-amber-800 text-xs leading-relaxed">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <div>
-                  <strong>Aviso do Modo Demo:</strong> Como você está navegando no ambiente de demonstração offline, qualquer alteração de senha será simulada localmente apenas para fins demonstrativos.
-                </div>
-              </div>
-            )}
 
             {/* Form */}
             <form onSubmit={handlePasswordChange} className="mt-4 space-y-4">
