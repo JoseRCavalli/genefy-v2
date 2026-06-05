@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '../../../lib/supabase-server';
+import { isDemoRequest, demoFemaleRows } from '../../../lib/demo-server';
 
-/** GET /api/females?farmId=<uuid> — fêmeas da fazenda (ordem animal_id), RLS via sessão. */
+/**
+ * GET /api/females?farmId=<uuid> — fêmeas da fazenda (ordem animal_id), RLS via sessão.
+ * Sessão demo (cookie): DEMO_FEMALES fictícias, sem tocar no Supabase.
+ */
 export async function GET(request: NextRequest) {
+  if (await isDemoRequest()) {
+    return NextResponse.json(demoFemaleRows());
+  }
+
   const { supabase, error } = await requireUser();
   if (error) return error;
 

@@ -1,7 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { FemaleRow } from '../lib/supabase';
-import { BASE_FEMALES } from '../lib/data';
-import { DEMO_FEMALES } from '../lib/demo-females';
 import type { Female } from '../lib/genetics';
 import { useAuth } from '../contexts/AuthContext';
 import { rowToFemale } from '../lib/row-mappers';
@@ -9,105 +7,29 @@ import { rowToFemale } from '../lib/row-mappers';
 // Conversão movida para módulo agnóstico (usada também pelos Route Handlers)
 export { rowToFemale };
 
-export function mapBaseFemalesToRows(farmId: string, source?: Female[]): FemaleRow[] {
-  return (source ?? BASE_FEMALES as Female[]).map((b, i) => ({
-    id: `female-${i}`,
-    farm_id: farmId,
-    animal_id: b.id,
-    reg_id: b.reg_id ?? null,
-    name: null,
-    breed: b.breed ?? 'HO',
-    lact: b.lact ?? 0,
-    ginb: b.ginb ?? null,
-    net_merit: b.net_merit ?? null,
-    tpi: b.tpi ?? null,
-    milk: b.milk ?? null,
-    protein: b.protein ?? null,
-    fat: b.fat ?? null,
-    fat_pct: b.fat_pct ?? null,
-    protein_pct: b.protein_pct ?? null,
-    productive_life: b.productive_life ?? null,
-    dpr: b.dpr ?? null,
-    hcr: b.hcr ?? null,
-    ccr: b.ccr ?? null,
-    fertility_index: b.fertility_index ?? null,
-    udc: b.udc ?? null,
-    flc: b.flc ?? null,
-    scs: b.scs ?? null,
-    cheese_merit: b.cheese_merit ?? null,
-    fluid_merit: b.fluid_merit ?? null,
-    feed_efficiency: b.feed_efficiency ?? null,
-    health_index: b.health_index ?? null,
-    mastitis: b.mastitis ?? null,
-    livability: b.livability ?? null,
-    heifer_livability: b.heifer_livability ?? null,
-    early_first_calving: b.early_first_calving ?? null,
-    sire_calving_ease: b.sire_calving_ease ?? null,
-    daughter_calving_ease: b.daughter_calving_ease ?? null,
-    sire_stillbirth: b.sire_stillbirth ?? null,
-    daughter_stillbirth: b.daughter_stillbirth ?? null,
-    ptat: b.ptat ?? null,
-    bde: b.bde ?? null,
-    dfm: b.dfm ?? null,
-    sta: b.sta ?? null,
-    str_val: b.str_val ?? null,
-    fls: b.fls ?? null,
-    fta: b.fta ?? null,
-    ftp: b.ftp ?? null,
-    fua: b.fua ?? null,
-    rlr: null,
-    rls: null,
-    rpa: null,
-    rtp: null,
-    ruh: null,
-    ruw: null,
-    tlg: null,
-    trw: null,
-    ucl: null,
-    udp: null,
-    sire_naab: b.sire_naab ?? null,
-    sire_name: b.sire_name ?? null,
-    sire_reg: b.sire_reg ?? null,
-    mgs_naab: b.mgs_naab ?? null,
-    mgs_name: b.mgs_name ?? null,
-    mmgs_naab: b.mmgs_naab ?? null,
-    dam_id: b.dam_id ?? null,
-    dam_reg: b.dam_reg ?? null,
-    dam_animal_id: b.dam_animal_id ?? null,
-    bdate: b.bdate ?? null,
-    genomic: b.genomic ?? false,
-    age: b.age ?? null,
-    is_primiparous: b.is_primiparous ?? false,
-    beta_casein: b.beta_casein ?? null,
-    kappa_casein: b.kappa_casein ?? null,
-    notes: b.notes ?? null,
-    categories: b.categories ?? [],
-    created_at: new Date().toISOString(),
-  } as unknown as FemaleRow));
-}
-
+/**
+ * Fase 3: os dados saíram do bundle.
+ * - Usuário real: GET /api/females (RLS via sessão).
+ * - Conta demo: o MESMO GET — o servidor detecta o cookie demo e devolve as
+ *   DEMO_FEMALES fictícias. Edições demo continuam em memória (browser).
+ * - BASE_FEMALES (rebanho real) não é mais embarcado nem usado como fallback.
+ */
 export function useFemales(farmId: string | null | undefined) {
   const { user } = useAuth();
   const isDemoUser = user?.email === 'demo@gmail.com';
 
-  const [females, setFemales] = useState<Female[]>(
-    isDemoUser ? DEMO_FEMALES : BASE_FEMALES as Female[]
-  );
+  const [females, setFemales] = useState<Female[]>([]);
   const [femaleRows, setFemaleRows] = useState<FemaleRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   const reload = useCallback(async () => {
-    if (isDemoUser) {
-      const rows = mapBaseFemalesToRows(farmId ?? 'demo-farm-id', DEMO_FEMALES);
-      setFemaleRows(rows);
-      setFemales(rows.map(rowToFemale));
-      return;
-    }
-
-    if (!farmId) return;
+    // Demo: o servidor responde com as fêmeas fictícias (cookie demo);
+    // usuário real precisa de farmId.
+    if (!isDemoUser && !farmId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/females?farmId=${encodeURIComponent(farmId)}`, { cache: 'no-store' });
+      const qs = farmId ? `?farmId=${encodeURIComponent(farmId)}` : '';
+      const res = await fetch(`/api/females${qs}`, { cache: 'no-store' });
       if (res.ok) {
         const data: FemaleRow[] = await res.json();
         if (data && data.length > 0) {
@@ -123,180 +45,10 @@ export function useFemales(farmId: string | null | undefined) {
 
   useEffect(() => { reload(); }, [reload]);
 
-  const catalogFemales = useMemo(() => {
-    // Demo user: retorna apenas as fêmeas fictícias, sem mesclar com dados reais
-    if (isDemoUser) return females;
-
-    if (femaleRows.length === 0) {
-      return BASE_FEMALES as Female[];
-    }
-    const custom = females;
-    const merged = (BASE_FEMALES as Female[]).map(base => {
-      const override = custom.find(c => c.id === base.id);
-      return override ?? base;
-    });
-    const customOnly = custom.filter(c => !(BASE_FEMALES as Female[]).some(b => b.id === c.id));
-    return [...merged, ...customOnly];
-  }, [females, femaleRows, isDemoUser]);
-
-  const catalogFemaleRows = useMemo(() => {
-    // Demo user: retorna apenas as rows fictícias, sem mesclar com dados reais
-    if (isDemoUser) return femaleRows;
-
-    if (femaleRows.length === 0) {
-      return (BASE_FEMALES as Female[]).map((b, i) => ({
-        id: `female-${i}`,
-        farm_id: farmId ?? '',
-        animal_id: b.id,
-        reg_id: b.reg_id ?? null,
-        name: null,
-        breed: b.breed ?? 'HO',
-        lact: b.lact ?? 0,
-        ginb: b.ginb ?? null,
-        net_merit: b.net_merit ?? null,
-        tpi: b.tpi ?? null,
-        milk: b.milk ?? null,
-        protein: b.protein ?? null,
-        fat: b.fat ?? null,
-        fat_pct: b.fat_pct ?? null,
-        protein_pct: b.protein_pct ?? null,
-        productive_life: b.productive_life ?? null,
-        dpr: b.dpr ?? null,
-        hcr: b.hcr ?? null,
-        ccr: b.ccr ?? null,
-        fertility_index: b.fertility_index ?? null,
-        udc: b.udc ?? null,
-        flc: b.flc ?? null,
-        scs: b.scs ?? null,
-        cheese_merit: b.cheese_merit ?? null,
-        fluid_merit: b.fluid_merit ?? null,
-        feed_efficiency: b.feed_efficiency ?? null,
-        health_index: b.health_index ?? null,
-        mastitis: b.mastitis ?? null,
-        livability: b.livability ?? null,
-        heifer_livability: b.heifer_livability ?? null,
-        early_first_calving: b.early_first_calving ?? null,
-        sire_calving_ease: b.sire_calving_ease ?? null,
-        daughter_calving_ease: b.daughter_calving_ease ?? null,
-        sire_stillbirth: b.sire_stillbirth ?? null,
-        daughter_stillbirth: b.daughter_stillbirth ?? null,
-        ptat: b.ptat ?? null,
-        bde: b.bde ?? null,
-        dfm: b.dfm ?? null,
-        sta: b.sta ?? null,
-        str_val: b.str_val ?? null,
-        fls: b.fls ?? null,
-        fta: b.fta ?? null,
-        ftp: b.ftp ?? null,
-        fua: b.fua ?? null,
-        rlr: null,
-        rls: null,
-        rpa: null,
-        rtp: null,
-        ruh: null,
-        ruw: null,
-        tlg: null,
-        trw: null,
-        ucl: null,
-        udp: null,
-        sire_naab: b.sire_naab ?? null,
-        sire_name: b.sire_name ?? null,
-        sire_reg: b.sire_reg ?? null,
-        mgs_naab: b.mgs_naab ?? null,
-        mgs_name: b.mgs_name ?? null,
-        mmgs_naab: b.mmgs_naab ?? null,
-        dam_id: b.dam_id ?? null,
-        dam_reg: b.dam_reg ?? null,
-        dam_animal_id: b.dam_animal_id ?? null,
-        bdate: b.bdate ?? null,
-        genomic: b.genomic ?? false,
-        age: b.age ?? null,
-        is_primiparous: b.is_primiparous ?? false,
-        beta_casein: b.beta_casein ?? null,
-        kappa_casein: b.kappa_casein ?? null,
-        notes: b.notes ?? null,
-        categories: b.categories ?? [],
-        created_at: new Date().toISOString(),
-      } as unknown as FemaleRow));
-    }
-    const basePseudoRows: FemaleRow[] = (BASE_FEMALES as Female[])
-      .filter(b => !femaleRows.some(r => r.animal_id === b.id))
-      .map((b, i) => ({
-        id: `female-${i}`,
-        farm_id: farmId ?? '',
-        animal_id: b.id,
-        reg_id: b.reg_id ?? null,
-        name: null,
-        breed: b.breed ?? 'HO',
-        lact: b.lact ?? 0,
-        ginb: b.ginb ?? null,
-        net_merit: b.net_merit ?? null,
-        tpi: b.tpi ?? null,
-        milk: b.milk ?? null,
-        protein: b.protein ?? null,
-        fat: b.fat ?? null,
-        fat_pct: b.fat_pct ?? null,
-        protein_pct: b.protein_pct ?? null,
-        productive_life: b.productive_life ?? null,
-        dpr: b.dpr ?? null,
-        hcr: b.hcr ?? null,
-        ccr: b.ccr ?? null,
-        fertility_index: b.fertility_index ?? null,
-        udc: b.udc ?? null,
-        flc: b.flc ?? null,
-        scs: b.scs ?? null,
-        cheese_merit: b.cheese_merit ?? null,
-        fluid_merit: b.fluid_merit ?? null,
-        feed_efficiency: b.feed_efficiency ?? null,
-        health_index: b.health_index ?? null,
-        mastitis: b.mastitis ?? null,
-        livability: b.livability ?? null,
-        heifer_livability: b.heifer_livability ?? null,
-        early_first_calving: b.early_first_calving ?? null,
-        sire_calving_ease: b.sire_calving_ease ?? null,
-        daughter_calving_ease: b.daughter_calving_ease ?? null,
-        sire_stillbirth: b.sire_stillbirth ?? null,
-        daughter_stillbirth: b.daughter_stillbirth ?? null,
-        ptat: b.ptat ?? null,
-        bde: b.bde ?? null,
-        dfm: b.dfm ?? null,
-        sta: b.sta ?? null,
-        str_val: b.str_val ?? null,
-        fls: b.fls ?? null,
-        fta: b.fta ?? null,
-        ftp: b.ftp ?? null,
-        fua: b.fua ?? null,
-        rlr: null,
-        rls: null,
-        rpa: null,
-        rtp: null,
-        ruh: null,
-        ruw: null,
-        tlg: null,
-        trw: null,
-        ucl: null,
-        udp: null,
-        sire_naab: b.sire_naab ?? null,
-        sire_name: b.sire_name ?? null,
-        sire_reg: b.sire_reg ?? null,
-        mgs_naab: b.mgs_naab ?? null,
-        mgs_name: b.mgs_name ?? null,
-        mmgs_naab: b.mmgs_naab ?? null,
-        dam_id: b.dam_id ?? null,
-        dam_reg: b.dam_reg ?? null,
-        dam_animal_id: b.dam_animal_id ?? null,
-        bdate: b.bdate ?? null,
-        genomic: b.genomic ?? false,
-        age: b.age ?? null,
-        is_primiparous: b.is_primiparous ?? false,
-        beta_casein: b.beta_casein ?? null,
-        kappa_casein: b.kappa_casein ?? null,
-        notes: b.notes ?? null,
-        categories: b.categories ?? [],
-        created_at: new Date().toISOString(),
-      } as unknown as FemaleRow));
-    return [...basePseudoRows, ...femaleRows];
-  }, [femaleRows, farmId]);
+  // Catálogo de fêmeas = exatamente o rebanho carregado (sem merge com dados
+  // estáticos; o fallback BASE_FEMALES foi removido na Fase 3).
+  const catalogFemales = useMemo(() => females, [females]);
+  const catalogFemaleRows = useMemo(() => femaleRows, [femaleRows]);
 
   async function upsertFemale(farmId: string, female: Partial<FemaleRow> & { animal_id: string }) {
     if (isDemoUser) {
@@ -308,7 +60,7 @@ export function useFemales(farmId: string | null | undefined) {
         } else {
           updated.push({
             id: `female-new-${Date.now()}`,
-            farm_id: farmId || 'demo-farm-id',
+            farm_id: farmId || 'demo-account-farm',
             categories: [],
             notes: '',
             ...female,
@@ -415,4 +167,3 @@ export function useFemales(farmId: string | null | undefined) {
     updateFemaleNotes
   };
 }
-

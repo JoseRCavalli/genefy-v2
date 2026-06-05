@@ -1,12 +1,9 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { BullRow } from '../lib/supabase';
-import { CATALOG_BULLS } from '../lib/catalog-bulls';
 import { getBrandFromCode } from '../lib/naab-brands';
 import { useAuth } from '../contexts/AuthContext';
 import { rowToBull } from '../lib/row-mappers';
 import type { Bull } from '../lib/genetics';
-
-const ALL_BASE_BULLS: Bull[] = CATALOG_BULLS;
 
 function bullToPseudoRow(b: Bull): BullRow {
   return {
@@ -50,15 +47,35 @@ function bullToPseudoRow(b: Bull): BullRow {
   };
 }
 
+/**
+ * Fase 3: o catálogo estático (CATALOG_BULLS) saiu do bundle — é carregado de
+ * GET /api/catalog (cacheável; servido para usuário logado e sessão demo).
+ * Custom bulls: API (usuário real) ou memória (conta demo).
+ */
 export function useBulls(farmId: string | null | undefined) {
   const { user } = useAuth();
   const isDemoUser = user?.email === 'demo@gmail.com';
 
+  const [catalog, setCatalog] = useState<Bull[]>([]);
   const [customRows, setCustomRows] = useState<BullRow[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Catálogo: uma vez por sessão (browser cacheia via Cache-Control)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/catalog');
+        if (res.ok && !cancelled) setCatalog((await res.json()) as Bull[]);
+      } catch (err) {
+        console.error('[useBulls] catálogo:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const reload = useCallback(async () => {
-    // Conta demo: 100% client-side (sem API; customizações ficam em memória)
+    // Conta demo: customizações ficam em memória (sem API)
     if (isDemoUser) return;
     if (!farmId) return;
     setLoading(true);
@@ -75,25 +92,25 @@ export function useBulls(farmId: string | null | undefined) {
 
   useEffect(() => { reload(); }, [reload]);
 
-  // Mesma derivação do hook antigo: catálogo estático + overrides/custom do banco
+  // Mesma derivação de antes: catálogo + overrides/custom
   const { bulls, bullRows } = useMemo(() => {
     const custom: Bull[] = customRows.map(rowToBull);
 
-    const basePseudoRows: BullRow[] = ALL_BASE_BULLS
+    const basePseudoRows: BullRow[] = catalog
       .filter(b => !customRows.some(r => r.code === b.code))
       .map(bullToPseudoRow);
 
-    const mergedBulls = ALL_BASE_BULLS.map(baseBull => {
+    const mergedBulls = catalog.map(baseBull => {
       const customOverride = custom.find(c => c.code === baseBull.code);
       return customOverride ?? baseBull;
     });
-    const customOnly = custom.filter(c => !ALL_BASE_BULLS.some(b => b.code === c.code));
+    const customOnly = custom.filter(c => !catalog.some(b => b.code === c.code));
 
     return {
       bulls: [...mergedBulls, ...customOnly],
       bullRows: [...basePseudoRows, ...customRows],
     };
-  }, [customRows]);
+  }, [customRows, catalog]);
 
   async function addCustomBull(farmId: string, bull: Omit<BullRow, 'id' | 'created_at' | 'farm_id'>) {
     if (isDemoUser) {
@@ -122,7 +139,7 @@ export function useBulls(farmId: string | null | undefined) {
       setCustomRows(rows => {
         const existing = rows.find(r => r.code === code);
         if (existing) return rows.map(r => r.code === code ? { ...r, price_per_dose: price } : r);
-        const base = ALL_BASE_BULLS.find(b => b.code === code);
+        const base = catalog.find(b => b.code === code);
         if (!base) return rows;
         return [...rows, { ...bullToPseudoRow({ ...base, price_per_dose: price }), id: `demo-${code}`, farm_id: 'demo-account-farm', is_custom: true }];
       });
@@ -147,7 +164,7 @@ export function useBulls(farmId: string | null | undefined) {
       setCustomRows(rows => {
         const idx = rows.findIndex(r => r.code === bull.code);
         const merged = {
-          ...(idx >= 0 ? rows[idx] : bullToPseudoRow(ALL_BASE_BULLS.find(b => b.code === bull.code) ?? ({ code: bull.code } as Bull))),
+          ...(idx >= 0 ? rows[idx] : bullToPseudoRow(catalog.find(b => b.code === bull.code) ?? ({ code: bull.code } as Bull))),
           ...bull,
           id: idx >= 0 ? rows[idx].id : `demo-${bull.code}`,
           farm_id: 'demo-account-farm',

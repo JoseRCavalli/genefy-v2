@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireUser } from '../../../../lib/supabase-server';
-import { loadMergedBulls, loadFemales } from '../../../../lib/calc-data-server';
+import { getCalcContext } from '../../../../lib/calc-data-server';
 import { runMatingPlan } from '../../../../lib/matching';
 import type { WeightMap } from '../../../../lib/genetics';
 
@@ -9,11 +8,10 @@ import type { WeightMap } from '../../../../lib/genetics';
  * body { farmId, femaleAnimalIds: string[], tank: [code, doses|null][],
  *        weights, maxInb }
  * Roda runMatingPlan (genetics.ts) no servidor. Retorna PlanResult[].
+ * Sessão demo (cookie): computa sobre DEMO_FEMALES + catálogo, sem Supabase
+ * (o botijão demo vem no payload — vive no localStorage do browser).
  */
 export async function POST(request: NextRequest) {
-  const { supabase, error } = await requireUser();
-  if (error) return error;
-
   const { farmId, femaleAnimalIds, tank, weights, maxInb } = await request.json();
 
   if (!farmId || !Array.isArray(femaleAnimalIds) || !Array.isArray(tank) || !weights) {
@@ -23,10 +21,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const [allBulls, females] = await Promise.all([
-    loadMergedBulls(supabase, farmId),
-    loadFemales(supabase, farmId, femaleAnimalIds),
-  ]);
+  const { allBulls, females, error } = await getCalcContext(farmId, femaleAnimalIds);
+  if (error) return error;
 
   const tankMap = new Map<string, { doses: number | null }>(
     (tank as [string, number | null][]).map(([code, doses]) => [code, { doses }])

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireUser } from '../../../../lib/supabase-server';
-import { loadMergedBulls, loadFemales } from '../../../../lib/calc-data-server';
+import { getCalcContext } from '../../../../lib/calc-data-server';
 import { getTop3Options } from '../../../../lib/matching';
 import type { WeightMap } from '../../../../lib/genetics';
 
@@ -9,12 +8,10 @@ import type { WeightMap } from '../../../../lib/genetics';
  * body { farmId, femaleAnimalIds: string[], bullCodes?: string[] | null,
  *        weights, maxInb, a2a2Only, useRel }
  * Roda getTop3Options (genetics.ts) no servidor para 1..N fêmeas.
+ * Sessão demo (cookie): computa sobre DEMO_FEMALES + catálogo, sem Supabase.
  * Retorna { [animalId]: MatchOption[] }.
  */
 export async function POST(request: NextRequest) {
-  const { supabase, error } = await requireUser();
-  if (error) return error;
-
   const { farmId, femaleAnimalIds, bullCodes, weights, maxInb, a2a2Only, useRel } =
     await request.json();
 
@@ -22,10 +19,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'farmId, femaleAnimalIds[] e weights obrigatórios' }, { status: 400 });
   }
 
-  const [allBulls, females] = await Promise.all([
-    loadMergedBulls(supabase, farmId),
-    loadFemales(supabase, farmId, femaleAnimalIds),
-  ]);
+  const { allBulls, females, error } = await getCalcContext(farmId, femaleAnimalIds);
+  if (error) return error;
 
   const bulls = Array.isArray(bullCodes) && bullCodes.length > 0
     ? allBulls.filter(b => bullCodes.includes(b.code))

@@ -81,6 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (email.trim().toLowerCase() === 'demo@gmail.com' && password === 'genefy') {
         localStorage.setItem('genefy_demo_session', 'true');
+        // Cookie lido pelos Route Handlers: a API serve dados FICTÍCIOS para a
+        // sessão demo (sem tocar no Supabase) — ver src/lib/demo-server.ts
+        document.cookie = 'genefy_demo_session=true; path=/; max-age=31536000; SameSite=Lax';
         setSession(mockDemoSession);
         setUser(mockDemoUser);
         return { error: null };
@@ -98,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err: any) {
       if (email.trim().toLowerCase() === 'demo@gmail.com' && password === 'genefy') {
         localStorage.setItem('genefy_demo_session', 'true');
+        document.cookie = 'genefy_demo_session=true; path=/; max-age=31536000; SameSite=Lax';
         setSession(mockDemoSession);
         setUser(mockDemoUser);
         return { error: null };
@@ -110,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signOut() {
     try {
       localStorage.removeItem('genefy_demo_session');
+      document.cookie = 'genefy_demo_session=; path=/; max-age=0';
       await supabase.auth.signOut();
     } catch (err) {
       console.error('Error signing out:', err);

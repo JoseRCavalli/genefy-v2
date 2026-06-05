@@ -5,17 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 const DEMO_FARM_ID_KEY = 'genefy_farm_id';
 
 /**
- * Conta demo (demo@gmail.com): farm fixa client-side, sem tocar no banco.
- * A sessão mock não tem cookies Supabase, então a API interna respondería 401
- * de qualquer forma — dados reais de rebanho são inalcançáveis por construção.
+ * Fase 3: a conta demo também busca via API — o servidor detecta o cookie
+ * demo e devolve a Fazenda Teste fixa, sem tocar no Supabase.
  */
-const DEMO_ACCOUNT_FARM: FarmRow = {
-  id: 'demo-account-farm',
-  name: 'Fazenda Teste',
-  owner_name: 'user',
-  created_at: '2026-01-01T00:00:00.000Z',
-};
-
 export function useFarm() {
   const { user } = useAuth();
   const [farm, setFarm] = useState<FarmRow | null>(null);
@@ -25,12 +17,6 @@ export function useFarm() {
     let cancelled = false;
 
     async function load() {
-      if (user?.email === 'demo@gmail.com') {
-        setFarm(DEMO_ACCOUNT_FARM);
-        setLoading(false);
-        return;
-      }
-
       try {
         const stored = localStorage.getItem(DEMO_FARM_ID_KEY);
         const qs = stored ? `?id=${encodeURIComponent(stored)}` : '';

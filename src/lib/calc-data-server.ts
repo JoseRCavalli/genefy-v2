@@ -7,8 +7,11 @@
  * O client manda IDs/códigos — nunca os objetos (payloads pequenos).
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
 import { CATALOG_BULLS } from './catalog-bulls';
 import { rowToBull, rowToFemale } from './row-mappers';
+import { requireUser } from './supabase-server';
+import { isDemoRequest, demoFemales } from './demo-server';
 import type { BullRow, FemaleRow } from './supabase';
 import type { Bull, Female } from './genetics';
 
@@ -51,4 +54,33 @@ export async function loadFemales(
   }
   const { data } = await query;
   return ((data ?? []) as FemaleRow[]).map(rowToFemale);
+}
+
+/**
+ * Contexto de cálculo unificado (Fase 3):
+ * - Sessão demo (cookie): catálogo estático + DEMO_FEMALES — sem Supabase.
+ * - Usuário real: requireUser + dados do banco via RLS.
+ */
+export async function getCalcContext(
+  farmId: string,
+  femaleAnimalIds?: string[]
+): Promise<
+  { allBulls: Bull[]; females: Female[]; error: null } | { allBulls: null; females: null; error: NextResponse }
+> {
+  if (await isDemoRequest()) {
+    return {
+      allBulls: CATALOG_BULLS,
+      females: demoFemales(femaleAnimalIds),
+      error: null,
+    };
+  }
+
+  const { supabase, error } = await requireUser();
+  if (error) return { allBulls: null, females: null, error };
+
+  const [allBulls, females] = await Promise.all([
+    loadMergedBulls(supabase, farmId),
+    loadFemales(supabase, farmId, femaleAnimalIds),
+  ]);
+  return { allBulls, females, error: null };
 }

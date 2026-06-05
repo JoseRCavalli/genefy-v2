@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireUser } from '../../../../lib/supabase-server';
-import { loadMergedBulls, loadFemales } from '../../../../lib/calc-data-server';
+import { getCalcContext } from '../../../../lib/calc-data-server';
 import { calcularIndicesProgenie } from '../../../../utils/calcularProgenie';
 
 /**
  * POST /api/calc/progeny
  * body { farmId, femaleAnimalId, bullCode }
- * Calcula o Perfil Genético da Progênie (médias + consanguinidade via
- * genetics.ts) no servidor. Retorna PerfilProgenieProps.
+ * Calcula o Perfil Genético da Progênie no servidor (sessão demo: sobre os
+ * dados fictícios). Retorna PerfilProgenieProps.
  */
 export async function POST(request: NextRequest) {
-  const { supabase, error } = await requireUser();
-  if (error) return error;
-
   const { farmId, femaleAnimalId, bullCode } = await request.json();
 
   if (!farmId || !femaleAnimalId || !bullCode) {
@@ -22,10 +18,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const [allBulls, females] = await Promise.all([
-    loadMergedBulls(supabase, farmId),
-    loadFemales(supabase, farmId, [femaleAnimalId]),
-  ]);
+  const { allBulls, females, error } = await getCalcContext(farmId, [femaleAnimalId]);
+  if (error) return error;
 
   const female = females[0];
   const bull = allBulls.find(b => b.code === bullCode);
