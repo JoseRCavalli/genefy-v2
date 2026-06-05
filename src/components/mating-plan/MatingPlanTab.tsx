@@ -2,16 +2,15 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { X, Calculator, Save, Printer, CheckCircle, Dna } from 'lucide-react';
 import type { Bull, Female, WeightMap, PlanResult } from '../../lib/matching';
 import { runMatingPlan, inb, fmt, inbClass } from '../../lib/matching';
-import { supabase } from '../../lib/supabase';
 import type { BullRow, FemaleRow } from '../../lib/supabase';
 import type { TankEntry } from '../../hooks/useTank';
 import { PerfilProgenieModal } from '../matching/PerfilProgenie';
 import { calcularIndicesProgenie } from '../../utils/calcularProgenie';
 import type { PerfilProgenieProps } from '../../types/PerfilProgenie.types';
+import { useAuth } from '../../contexts/AuthContext';
+import { insertDemoMating } from '../../lib/demo-matings';
 
 const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-
-import { ensureBullInDb } from '../../hooks/useTank';
 
 interface Props {
   females: Female[];
@@ -276,6 +275,8 @@ export function MatingPlanTab({
   maxInb, useRel,
   farmId, farmName = 'Granja Demo', bullRows, femaleRows, onUpdateTank, onNavigate,
 }: Props) {
+  const { user } = useAuth();
+  const isDemoUser = user?.email === 'demo@gmail.com';
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Female[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -393,26 +394,49 @@ export function MatingPlanTab({
       return;
     }
 
-    // Modo Supabase: salvar no banco
+    // Conta demo: histórico local por browser, sem tocar no banco
     let count = 0;
-    for (const r of results) {
-      if (!r.bull) continue;
-      const femaleRow = femaleRows.find(fr => fr.animal_id === r.female.id);
-      if (!femaleRow) continue;
-      
-      const bullId = await ensureBullInDb(r.bull.code, allBulls);
-      if (!bullId) continue;
+    if (isDemoUser) {
+      for (const r of results) {
+        if (!r.bull) continue;
+        const femaleRow = femaleRows.find(fr => fr.animal_id === r.female.id);
+        if (!femaleRow) continue;
+        insertDemoMating({
+          farm_id: farmId,
+          femaleRow,
+          bullRow: bullRows.find(b => b.code === r.bull!.code) ?? null,
+          bullCode: r.bull.code,
+          option_rank: 1,
+          score: r.score,
+          inbreeding_pct: r.inbreeding,
+        });
+        count++;
+      }
+    } else {
+      // Modo Supabase: salvar em lote via API (resolução touro code->uuid no servidor)
+      const payload = results
+        .filter(r => r.bull)
+        .flatMap(r => {
+          const femaleRow = femaleRows.find(fr => fr.animal_id === r.female.id);
+          if (!femaleRow) return [];
+          return [{
+            female_id: femaleRow.id,
+            bull: r.bull!.code,
+            option_rank: 1,
+            score: r.score,
+            inbreeding_pct: r.inbreeding,
+            status: 'planned',
+          }];
+        });
 
-      const { error } = await supabase.from('matings').insert({
-        farm_id: farmId,
-        female_id: femaleRow.id,
-        bull_id: bullId,
-        option_rank: 1,
-        score: r.score,
-        inbreeding_pct: r.inbreeding,
-        status: 'planned',
-      });
-      if (!error) count++;
+      if (payload.length > 0) {
+        const res = await fetch('/api/matings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ farmId, matings: payload }),
+        }).catch(() => null);
+        if (res?.ok) count = (await res.json()).saved ?? 0;
+      }
     }
 
     // Debitar doses usadas do botijão

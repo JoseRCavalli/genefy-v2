@@ -5,8 +5,9 @@ import { getTop3Options } from '../../lib/matching';
 
 type MatchOption = ReturnType<typeof getTop3Options>[number];
 type MatchResult = { bull: Bull; inbreeding: number; score: number; carriers: string[]; isCustom: boolean };
-import { supabase } from '../../lib/supabase';
 import type { FemaleRow, BullRow } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { insertDemoMating } from '../../lib/demo-matings';
 import { BullOptionCard } from '../matching/BullOptionCard';
 import type { FemaleAssignment } from '../../types/herd-strategy.types';
 import { GROUP_LABELS, GROUP_COLORS } from '../../types/herd-strategy.types';
@@ -33,6 +34,8 @@ export function PrimiparousTab({
   farmId, bullRows, onReloadFemales, onTogglePrimiparous,
   assignments,
 }: Props) {
+  const { user } = useAuth();
+  const isDemoUser = user?.email === 'demo@gmail.com';
   const [sexedMap, setSexedMap] = useState<Record<string, boolean>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
@@ -70,16 +73,37 @@ export function PrimiparousTab({
     const femaleRow = femaleRows.find(r => r.animal_id === female.id);
     const bullRow = bullRows.find(b => b.code === result.bull.code);
     if (!femaleRow || !bullRow) { setSaving(null); return; }
-    await supabase.from('matings').insert({
-      farm_id: farmId,
-      female_id: femaleRow.id,
-      bull_id: bullRow.id,
-      option_rank: rank,
-      score: result.score,
-      inbreeding_pct: result.inbreeding ?? 0,
-      is_sexed_semen: isSexed,
-      status: 'planned',
-    });
+
+    if (isDemoUser) {
+      // Conta demo: histórico local por browser, sem tocar no banco
+      insertDemoMating({
+        farm_id: farmId,
+        femaleRow,
+        bullRow,
+        bullCode: result.bull.code,
+        option_rank: rank,
+        score: result.score,
+        inbreeding_pct: result.inbreeding ?? 0,
+        is_sexed_semen: isSexed,
+      });
+    } else {
+      await fetch('/api/matings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          farmId,
+          matings: [{
+            female_id: femaleRow.id,
+            bull: result.bull.code,
+            option_rank: rank,
+            score: result.score,
+            inbreeding_pct: result.inbreeding ?? 0,
+            is_sexed_semen: isSexed,
+            status: 'planned',
+          }],
+        }),
+      }).catch(() => null);
+    }
     setSaving(null);
   }
 

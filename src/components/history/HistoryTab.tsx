@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, Fragment } from 'react';
 import { CheckCircle, Baby, XCircle, RefreshCw, Trash2, ClipboardList, Syringe, Leaf, AlertOctagon, FlaskConical, Circle, Dna, ChevronRight } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import type { MatingRow, FemaleRow, BullRow } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { listDemoMatings, updateDemoMatingStatus, deleteDemoMating } from '../../lib/demo-matings';
 import { PerfilProgenieModal } from '../matching/PerfilProgenie';
 import { calcularIndicesProgenie } from '../../utils/calcularProgenie';
 import type { PerfilProgenieProps } from '../../types/PerfilProgenie.types';
@@ -28,6 +29,9 @@ const STATUS_COLORS: Record<MatingStatus, string> = {
 };
 
 export function HistoryTab({ farmId, demoMode }: Props) {
+  const { user } = useAuth();
+  const isDemoUser = user?.email === 'demo@gmail.com';
+
   if (demoMode) {
     return (
       <div className="p-6 max-w-2xl mx-auto text-center space-y-4">
@@ -48,15 +52,19 @@ export function HistoryTab({ farmId, demoMode }: Props) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('matings')
-      .select('*, females(*), bulls(*)')
-      .eq('farm_id', farmId)
-      .order('created_at', { ascending: false })
-      .limit(200);
-    setMatings((data ?? []) as typeof matings);
+    if (isDemoUser) {
+      setMatings(listDemoMatings() as typeof matings);
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/matings?farmId=${encodeURIComponent(farmId)}`, { cache: 'no-store' });
+      if (res.ok) setMatings((await res.json()) as typeof matings);
+    } catch (err) {
+      console.error('[HistoryTab] load:', err);
+    }
     setLoading(false);
-  }, [farmId]);
+  }, [farmId, isDemoUser]);
 
   const handleRowClick = (matingId: string) => {
     setExpandedRow(prev => prev === matingId ? null : matingId);
@@ -68,9 +76,17 @@ export function HistoryTab({ farmId, demoMode }: Props) {
     setUpdating(id);
     // Optimistic update
     setMatings(prev => prev.map(m => m.id === id ? { ...m, status } : m));
-    const { error } = await supabase.from('matings').update({ status }).eq('id', id);
+    if (isDemoUser) {
+      updateDemoMatingStatus(id, status);
+    } else {
+      const res = await fetch(`/api/matings/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      }).catch(() => null);
+      if (!res?.ok) console.error('Erro ao atualizar status do acasalamento');
+    }
     setUpdating(null);
-    if (error) console.error(error);
     load();
   }
 
@@ -87,7 +103,11 @@ export function HistoryTab({ farmId, demoMode }: Props) {
   async function deleteMating(id: string) {
     if (!confirm('Tem certeza que deseja deletar este acasalamento?')) return;
     setUpdating(id);
-    await supabase.from('matings').delete().eq('id', id);
+    if (isDemoUser) {
+      deleteDemoMating(id);
+    } else {
+      await fetch(`/api/matings/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => null);
+    }
     setUpdating(null);
     load();
   }

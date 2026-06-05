@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import type { Bull, Female, WeightMap } from '../../lib/matching';
 import { getTop3Options } from '../../lib/matching';
-import { supabase } from '../../lib/supabase';
 import { BullOptionCard } from './BullOptionCard';
 import type { BullRow, FemaleRow } from '../../lib/supabase';
-import { ensureBullInDb } from '../../hooks/useTank';
+import { useAuth } from '../../contexts/AuthContext';
+import { insertDemoMating } from '../../lib/demo-matings';
 
 import type { FemaleAssignment } from '../../types/herd-strategy.types';
 import { GROUP_LABELS, GROUP_COLORS } from '../../types/herd-strategy.types';
@@ -36,6 +36,8 @@ export function MatchingTab({
 }: Props) {
   const [saved, setSaved] = useState<string[]>([]);
   const [catalogFilter, setCatalogFilter] = useState('');
+  const { user } = useAuth();
+  const isDemoUser = user?.email === 'demo@gmail.com';
 
   const catalogOptions = useMemo(() => {
     const seen = new Set<string>();
@@ -54,26 +56,49 @@ export function MatchingTab({
     if (!female) return;
     const femaleRow = femaleRows.find(r => r.animal_id === female.id);
     if (!femaleRow) { alert('Fêmea não encontrada no banco de dados.'); return; }
-    
-    // Obter ou criar o touro no banco para ter o UUID válido
-    const bullId = await ensureBullInDb(opt.bull.code, allBulls);
-    if (!bullId) { alert('Erro ao registrar touro no banco de dados.'); return; }
 
-    const { error } = await supabase.from('matings').insert({
-      farm_id: farmId,
-      female_id: femaleRow.id,
-      bull_id: bullId,
-      option_rank: rank,
-      score: opt.score,
-      inbreeding_pct: opt.inbreeding,
-      is_sexed_semen: isSexed,
-      status: 'planned',
-    });
-    if (!error) {
+    // Conta demo: histórico local por browser, sem tocar no banco
+    if (isDemoUser) {
+      insertDemoMating({
+        farm_id: farmId,
+        femaleRow,
+        bullRow: bullRows.find(b => b.code === opt.bull.code) ?? null,
+        bullCode: opt.bull.code,
+        option_rank: rank,
+        score: opt.score,
+        inbreeding_pct: opt.inbreeding,
+        is_sexed_semen: isSexed,
+      });
       setSaved(v => [...v, `${female.id}-${rank}`]);
       if (onNavigate) onNavigate('history');
+      return;
     }
-    else alert(`Erro ao salvar: ${error.message}`);
+
+    // A resolução code->uuid do touro roda no servidor
+    const res = await fetch('/api/matings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        farmId,
+        matings: [{
+          female_id: femaleRow.id,
+          bull: opt.bull.code,
+          option_rank: rank,
+          score: opt.score,
+          inbreeding_pct: opt.inbreeding,
+          is_sexed_semen: isSexed,
+          status: 'planned',
+        }],
+      }),
+    }).catch(() => null);
+
+    const body = res ? await res.json() : null;
+    if (res?.ok && body?.saved > 0) {
+      setSaved(v => [...v, `${female.id}-${rank}`]);
+      if (onNavigate) onNavigate('history');
+    } else {
+      alert(`Erro ao salvar: ${body?.error ?? 'falha de rede'}`);
+    }
   }
 
   if (!female) {
