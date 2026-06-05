@@ -1,8 +1,6 @@
+'use client';
+
 import { useState, useMemo } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { LandingPage } from './LandingPage';
-import { SolicitarAcessoPage } from './SolicitarAcessoPage';
-import { LoginPage } from './LoginPage';
 import { AuthGuard } from '../components/ui/AuthGuard';
 import LoadingScreen from '../components/ui/LoadingScreen';
 import { CustomHeader } from '../components/ui/CustomHeader';
@@ -504,25 +502,13 @@ function SupabaseApp() {
   );
 }
 
-export default function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/solicitar" element={<SolicitarAcessoPage />} />
-      <Route
-        path="/app"
-        element={
-          IS_DEMO ? (
-            <DemoApp />
-          ) : (
-            <AuthGuard>
-              <SupabaseApp />
-            </AuthGuard>
-          )
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+// Shell da rota /app — o roteamento entre páginas agora é do Next (src/app/).
+export default function AppShell() {
+  return IS_DEMO ? (
+    <DemoApp />
+  ) : (
+    <AuthGuard>
+      <SupabaseApp />
+    </AuthGuard>
   );
 }
