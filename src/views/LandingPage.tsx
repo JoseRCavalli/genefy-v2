@@ -1,5 +1,7 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import {
   Dna,
   ArrowRight,
@@ -195,7 +197,7 @@ export function LandingPage() {
       <header className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm h-20">
         <div className="flex justify-between items-center px-margin-mobile md:px-margin-desktop h-full max-w-[1440px] mx-auto">
           <div className="flex items-center gap-2">
-            <Link to="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <img
                 src="/images/genefy-logo-dark.png"
                 alt="Genefy Logo"
@@ -212,10 +214,10 @@ export function LandingPage() {
           </nav>
 
           <div className="flex items-center gap-md">
-            <Link to="/solicitar" className="hidden lg:block text-primary font-label-md text-label-md px-md py-sm hover:opacity-80 transition-all font-semibold">
+            <Link href="/solicitar" className="hidden lg:block text-primary font-label-md text-label-md px-md py-sm hover:opacity-80 transition-all font-semibold">
               Solicitar Acesso
             </Link>
-            <Link to="/login" className="bg-primary text-on-primary px-md py-sm rounded-xl font-label-md text-label-md hover:scale-95 duration-150 transition-all font-semibold">
+            <Link href="/login" className="bg-primary text-on-primary px-md py-sm rounded-xl font-label-md text-label-md hover:scale-95 duration-150 transition-all font-semibold">
               Acessar Plataforma
             </Link>
             {/* Mobile menu trigger */}
@@ -238,7 +240,7 @@ export function LandingPage() {
           <button onClick={() => handleScroll('beef-on-dairy')} className="text-left font-semibold text-on-surface-variant hover:text-primary transition-colors">Metodologia</button>
           <button onClick={() => handleScroll('depoimentos')} className="text-left font-semibold text-on-surface-variant hover:text-primary transition-colors">Sobre</button>
           <hr className="border-outline-variant/20" />
-          <Link to="/solicitar" className="w-full py-2.5 text-center font-semibold text-primary border border-primary rounded-xl hover:bg-surface-container transition-colors">
+          <Link href="/solicitar" className="w-full py-2.5 text-center font-semibold text-primary border border-primary rounded-xl hover:bg-surface-container transition-colors">
             Solicitar Acesso
           </Link>
         </div>
@@ -274,7 +276,7 @@ export function LandingPage() {
               Utilizamos inteligência artificial e análise de dados genômicos para elevar o patamar de produtividade do seu rebanho. Decisões baseadas em ciência, não em intuição.
             </p>
             <div className="flex flex-wrap gap-md">
-              <Link to="/solicitar" className="bg-[#1E7E34] text-white px-lg py-md rounded-xl font-label-md text-label-md hover:brightness-110 transition-all flex items-center gap-2 shadow-lg hover:shadow-green-900/20">
+              <Link href="/solicitar" className="bg-[#1E7E34] text-white px-lg py-md rounded-xl font-label-md text-label-md hover:brightness-110 transition-all flex items-center gap-2 shadow-lg hover:shadow-green-900/20">
                 Começar Agora
                 <ArrowRight className="w-4 h-4" />
               </Link>
@@ -501,7 +503,7 @@ export function LandingPage() {
                   <span>Suporte via Ticket</span>
                 </li>
               </ul>
-              <Link to="/solicitar" className="w-full py-md border border-primary text-primary rounded-xl font-label-md hover:bg-primary hover:text-white transition-all text-center block mt-auto">
+              <Link href="/solicitar" className="w-full py-md border border-primary text-primary rounded-xl font-label-md hover:bg-primary hover:text-white transition-all text-center block mt-auto">
                 Assinar Agora
               </Link>
             </div>
@@ -531,7 +533,7 @@ export function LandingPage() {
                   <span>Suporte prioritário</span>
                 </li>
               </ul>
-              <Link to="/solicitar" className="w-full py-md border border-primary text-primary rounded-xl font-label-md hover:bg-primary hover:text-white transition-all text-center block mt-auto">
+              <Link href="/solicitar" className="w-full py-md border border-primary text-primary rounded-xl font-label-md hover:bg-primary hover:text-white transition-all text-center block mt-auto">
                 Assinar Agora
               </Link>
             </div>
@@ -564,7 +566,7 @@ export function LandingPage() {
                   <span>Suporte prioritário 24/7</span>
                 </li>
               </ul>
-              <Link to="/solicitar" className="w-full py-md bg-primary text-white rounded-xl font-label-md hover:brightness-125 transition-all text-center block mt-auto">
+              <Link href="/solicitar" className="w-full py-md bg-primary text-white rounded-xl font-label-md hover:brightness-125 transition-all text-center block mt-auto">
                 Assinar Agora
               </Link>
             </div>
@@ -589,7 +591,7 @@ export function LandingPage() {
                   <span>API White-label</span>
                 </li>
               </ul>
-              <Link to="/solicitar" className="w-full py-md border border-primary text-primary rounded-xl font-label-md hover:bg-primary hover:text-white transition-all text-center block mt-auto">
+              <Link href="/solicitar" className="w-full py-md border border-primary text-primary rounded-xl font-label-md hover:bg-primary hover:text-white transition-all text-center block mt-auto">
                 Falar com Consultor
               </Link>
             </div>

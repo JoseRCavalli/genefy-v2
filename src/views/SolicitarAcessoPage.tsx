@@ -1,5 +1,7 @@
+'use client';
+
 import { useState, FormEvent, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 export function SolicitarAcessoPage() {
   const [name, setName] = useState('');
@@ -64,7 +66,7 @@ export function SolicitarAcessoPage() {
       {/* Top Navigation Shell */}
       <nav className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm h-20">
         <div className="flex justify-between items-center px-margin-desktop h-full max-w-[1440px] mx-auto w-full">
-          <Link to="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <img
               src="/images/genefy-logo-dark.png"
               alt="Genefy Logo"
@@ -72,24 +74,24 @@ export function SolicitarAcessoPage() {
             />
           </Link>
           <div className="hidden md:flex gap-gutter items-center">
-            <Link to="/#como-funciona" className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors">
+            <Link href="/#como-funciona" className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors">
               Genética
             </Link>
-            <Link to="/#funcionalidades" className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors">
+            <Link href="/#funcionalidades" className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors">
               Resultados
             </Link>
-            <Link to="/#beef-on-dairy" className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors">
+            <Link href="/#beef-on-dairy" className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors">
               Metodologia
             </Link>
-            <Link to="/#depoimentos" className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors">
+            <Link href="/#depoimentos" className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors">
               Sobre
             </Link>
             <div className="h-6 w-px bg-outline-variant/50 mx-xs"></div>
-            <Link to="/solicitar" className="text-primary font-label-md text-label-md border-b-2 border-primary pb-1">
+            <Link href="/solicitar" className="text-primary font-label-md text-label-md border-b-2 border-primary pb-1">
               Solicitar Acesso
             </Link>
             <Link
-              to="/login"
+              href="/login"
               className="bg-primary-container text-on-primary-container px-md py-sm rounded-xl font-label-md text-label-md hover:scale-95 transition-all text-center"
             >
               Acessar Plataforma
@@ -333,16 +335,16 @@ export function SolicitarAcessoPage() {
           <div className="md:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-md">
             <div className="flex flex-col gap-xs">
               <span className="text-secondary-fixed font-bold font-label-sm text-label-sm uppercase mb-xs">Links</span>
-              <Link to="/#privacidade" className="text-on-primary/70 font-body-md text-body-md hover:text-secondary-fixed transition-all">
+              <Link href="/#privacidade" className="text-on-primary/70 font-body-md text-body-md hover:text-secondary-fixed transition-all">
                 Privacidade
               </Link>
-              <Link to="/#termos" className="text-on-primary/70 font-body-md text-body-md hover:text-secondary-fixed transition-all">
+              <Link href="/#termos" className="text-on-primary/70 font-body-md text-body-md hover:text-secondary-fixed transition-all">
                 Termos
               </Link>
-              <Link to="/#contato" className="text-on-primary/70 font-body-md text-body-md hover:text-secondary-fixed transition-all">
+              <Link href="/#contato" className="text-on-primary/70 font-body-md text-body-md hover:text-secondary-fixed transition-all">
                 Contato
               </Link>
-              <Link to="/#suporte" className="text-on-primary/70 font-body-md text-body-md hover:text-secondary-fixed transition-all">
+              <Link href="/#suporte" className="text-on-primary/70 font-body-md text-body-md hover:text-secondary-fixed transition-all">
                 Suporte
               </Link>
             </div>

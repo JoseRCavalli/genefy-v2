@@ -1,6 +1,9 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingScreen } from './LoadingScreen';
-import { Navigate } from 'react-router-dom';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -8,13 +11,17 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const { session, loading } = useAuth();
+  const router = useRouter();
 
-  if (loading) {
+  // Sem sessão: redireciona para /login (substitui o <Navigate> do react-router)
+  useEffect(() => {
+    if (!loading && !session) {
+      router.replace('/login');
+    }
+  }, [loading, session, router]);
+
+  if (loading || !session) {
     return <LoadingScreen />;
-  }
-
-  if (!session) {
-    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;

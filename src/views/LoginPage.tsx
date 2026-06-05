@@ -1,19 +1,30 @@
-import { useState, FormEvent } from 'react';
+'use client';
+
+import { useState, useEffect, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
-import { Link, Navigate } from 'react-router-dom';
 
 export function LoginPage() {
   const { signIn, session } = useAuth();
-
-  if (session) {
-    return <Navigate to="/app" replace />;
-  }
+  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Com sessão ativa, vai direto para o app (substitui o <Navigate> do react-router)
+  useEffect(() => {
+    if (session) {
+      router.replace('/app');
+    }
+  }, [session, router]);
+
+  if (session) {
+    return null;
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -179,7 +190,7 @@ export function LoginPage() {
           <div className="mt-lg text-center">
             <p className="font-body-md text-body-md text-on-surface-variant">
               Ainda não possui acesso?{' '}
-              <Link className="text-secondary font-label-md hover:underline font-semibold" to="/solicitar">
+              <Link className="text-secondary font-label-md hover:underline font-semibold" href="/solicitar">
                 Solicitar demonstração
               </Link>
             </p>
@@ -187,7 +198,7 @@ export function LoginPage() {
 
           {/* Footer-like Links for Auth Page */}
           <div className="mt-lg pt-lg border-t border-outline-variant/30 flex justify-center gap-lg">
-            <Link className="font-label-sm text-label-sm text-outline hover:text-on-surface-variant transition-colors" to="/">Início</Link>
+            <Link className="font-label-sm text-label-sm text-outline hover:text-on-surface-variant transition-colors" href="/">Início</Link>
             <a className="font-label-sm text-label-sm text-outline hover:text-on-surface-variant transition-colors" href="#">Termos</a>
             <a className="font-label-sm text-label-sm text-outline hover:text-on-surface-variant transition-colors" href="#">Privacidade</a>
           </div>
