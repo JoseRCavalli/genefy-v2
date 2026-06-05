@@ -275,5 +275,5 @@ npm run start        # serve o build de produção
 npm run seed         # inalterado (tsx scripts/seed.ts, service role via .env)
 ```
 
-`.env.local` (gitignored): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-`NEXT_PUBLIC_DEMO_MODE` — ver `.env.example`. Lembre: valores são fixados no build.
+`.env.local` (gitignored): `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+— ver `.env.example`. Lembre: valores são fixados no build.
