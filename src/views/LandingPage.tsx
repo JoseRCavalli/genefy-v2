@@ -661,11 +661,11 @@ export function LandingPage() {
               <div className="space-y-md">
                 <div className="flex items-center gap-md">
                   <Mail className="text-tertiary-container" />
-                  <span className="font-body-md">contato@genefy.com.br</span>
+                  <span className="font-body-md">@ogenefy no Instagram!</span>
                 </div>
                 <div className="flex items-center gap-md">
                   <Phone className="text-tertiary-container" />
-                  <span className="font-body-md">+55 (34) 99876-5432</span>
+                  <span className="font-body-md">+55 (45) 99107-3187</span>
                 </div>
               </div>
             </div>
