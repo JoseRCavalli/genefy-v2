@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { Search, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Plus, X, BarChart2, Sliders } from 'lucide-react';
 import type { Bull } from '../../lib/matching';
 import { getCarrierHaplotypes, fmt } from '../../lib/matching';
@@ -272,9 +272,8 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
               const carriers = getCarrierHaplotypes(bull);
 
               return (
-                <>
+                <Fragment key={bull.code}>
                   <tr
-                    key={bull.code}
                     className={`hover:bg-gray-50 cursor-pointer ${inTank ? 'bg-amber-50/40' : ''}`}
                     onClick={() => setExpandedCode(isExpanded ? null : bull.code)}
                   >
@@ -396,7 +395,7 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </tbody>
