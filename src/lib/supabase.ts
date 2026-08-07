@@ -50,7 +50,6 @@ export interface BullRow {
   hh5: string;
   hh6: string;
   price_per_dose: number | null;
-  catalog: string | null;
   is_custom: boolean;
   source: string;
   bull_type?: string;

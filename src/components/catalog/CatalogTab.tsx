@@ -172,7 +172,6 @@ export function CatalogTab({ allBulls, tankBulls, bullRows, farmId, onUpdatePric
       hh5: form.hh5 || 'Free',
       hh6: form.hh6 || 'Free',
       price_per_dose: numOrNull(form.price_per_dose),
-      catalog: editingBullCode ? (allBulls.find(b => b.code === editingBullCode)?.catalog ?? null) : null,
       is_custom: true,
       source: editingBullCode ? (allBulls.find(b => b.code === editingBullCode)?._custom ? 'MANUAL' : 'CDCB') : 'MANUAL',
     };

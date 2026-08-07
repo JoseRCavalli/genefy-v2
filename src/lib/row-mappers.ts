@@ -200,7 +200,7 @@ export function rowToBull(r: BullRow): Bull {
     HH6: r.hh6,
     reliability: r.reliability,
     price_per_dose: r.price_per_dose,
-    catalog: r.catalog ?? getBrandFromCode(r.code),
+    catalog: (r as any).catalog ?? getBrandFromCode(r.code),
     _custom: r.is_custom,
   };
 }

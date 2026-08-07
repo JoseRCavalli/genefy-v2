@@ -182,7 +182,6 @@ export function parseSelectSiresCSV(csvText: string): SelectSiresBull[] {
       hh5: 'Free',
       hh6: 'Free',
       price_per_dose: null,
-      catalog: 'Select Sires',
       is_custom: true,
       source: 'select_sires',
       feed_saved: null,

@@ -40,7 +40,6 @@ function bullToPseudoRow(b: Bull): BullRow {
     hh6: (b.HH6 as string) || 'Free',
     reliability: b.reliability ?? null,
     price_per_dose: b.price_per_dose ?? null,
-    catalog: (b as { catalog?: string | null }).catalog ?? getBrandFromCode(b.code),
     is_custom: false,
     source: 'CDCB',
     created_at: new Date().toISOString(),

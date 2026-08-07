@@ -37,7 +37,7 @@ export async function PUT(request: NextRequest) {
 
   const { error: qError } = await supabase
     .from('females')
-    .upsert({ ...female, farm_id: farmId }, { onConflict: 'farm_id,animal_id' });
+    .upsert({ ...female, farm_id: farmId }, { onConflict: female.id ? 'id' : 'farm_id,animal_id' });
 
   if (qError) return NextResponse.json({ error: qError.message }, { status: 500 });
   return NextResponse.json({ ok: true });

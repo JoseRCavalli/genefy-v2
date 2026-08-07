@@ -625,7 +625,7 @@ export function HerdTab({
     }
 
     setSaving(true);
-    await onUpsert(farmId, {
+    const err = await onUpsert(farmId, {
       animal_id: idTrimmed,
       name: form.name || null,
       breed: form.breed || 'HO',
@@ -634,13 +634,19 @@ export function HerdTab({
       sire_naab: sireData?.code ?? (form.sire || null),
       mgs_naab: form.mgs || null,
       mmgs_naab: form.mmgs || null,
-      dam_id: form.dam || null,
+      dam_id: form.dam ? (femaleRows.find(r => r.animal_id === form.dam)?.id || null) : null,
       ginb: form.ginb ? parseFloat(form.ginb) : null,
       milk: form.milk_kg ? Math.round(parseFloat(form.milk_kg) * 2.205) : null,
       genomic: form.genomic,
       is_primiparous: (parseInt(form.lact) || 0) === 0,
     });
     setSaving(false);
+    
+    if (err) {
+      setError((err as Error).message);
+      return;
+    }
+
     setSuccessId(idTrimmed);
     setForm({ ...EMPTY_FORM });
     setSireInfo('');
@@ -1297,7 +1303,6 @@ export function HerdTab({
             const err = await onUpsert(farmId, {
               ...editingFemale.row,
               ...updated,
-              animal_id: editingFemale.female.id,
             });
             return err;
           }}
@@ -1319,6 +1324,7 @@ interface EditFemaleModalProps {
 
 function EditFemaleModal({ female, row, allBulls, onClose, onSave }: EditFemaleModalProps) {
   const [form, setForm] = useState({
+    animal_id: row.animal_id,
     name: row.name ?? '',
     breed: row.breed ?? 'HO',
     lact: String(row.lact ?? 0),
@@ -1355,6 +1361,8 @@ function EditFemaleModal({ female, row, allBulls, onClose, onSave }: EditFemaleM
     setError('');
 
     const updatedData: Partial<FemaleRow> = {
+      id: row.id,
+      animal_id: form.animal_id.trim(),
       name: form.name.trim() || null,
       breed: form.breed,
       lact: parseInt(form.lact) || 0,
@@ -1427,9 +1435,9 @@ function EditFemaleModal({ female, row, allBulls, onClose, onSave }: EditFemaleM
                 <label className="text-xs text-gray-500 mb-1 block">Número / ID</label>
                 <input
                   type="text"
-                  value={female.id}
-                  disabled
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm bg-gray-50 text-gray-400 font-mono"
+                  value={form.animal_id}
+                  onChange={e => setForm(f => ({ ...f, animal_id: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 font-mono"
                 />
               </div>
               <div>
