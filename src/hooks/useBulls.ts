@@ -65,7 +65,17 @@ export function useBulls(farmId: string | null | undefined) {
     (async () => {
       try {
         const res = await fetch('/api/catalog');
-        if (res.ok && !cancelled) setCatalog((await res.json()) as Bull[]);
+        if (res.ok && !cancelled) {
+          const data = await res.json() as any[];
+          const normalized = data.map(b => ({
+            ...b,
+            productive_life: b.productive_life ?? b.pl,
+            cow_livability: b.cow_livability ?? b.liv,
+            sire_calving_ease: b.sire_calving_ease ?? b.sce,
+            feed_saved: b.feed_saved ?? b.efi,
+          }));
+          setCatalog(normalized as Bull[]);
+        }
       } catch (err) {
         console.error('[useBulls] catálogo:', err);
       }

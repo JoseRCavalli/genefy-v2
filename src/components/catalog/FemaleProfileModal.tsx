@@ -23,6 +23,7 @@ interface Section {
 interface Props {
   female: Female | null;
   femaleRow: FemaleRow | undefined;
+  damAnimalId?: string;
   onClose: () => void;
   onGoToMatching: () => void;
 }
@@ -322,7 +323,7 @@ function SectionHeader({ title }: { title: string }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function FemaleProfileModal({ female, femaleRow, onClose, onGoToMatching }: Props) {
+export function FemaleProfileModal({ female, femaleRow, damAnimalId, onClose, onGoToMatching }: Props) {
   const isOpen = female != null;
 
   // Close on Escape
@@ -657,7 +658,7 @@ export function FemaleProfileModal({ female, femaleRow, onClose, onGoToMatching 
                 <PedigreeRow label="Pai (Sire)" value={female.sire_naab} />
                 <PedigreeRow label="Avô Materno" value={female.mgs_naab} />
                 <PedigreeRow label="Bisavô Materno" value={female.mmgs_naab} />
-                <PedigreeRow label="Mãe" value={femaleRow?.dam_id ?? (female.dam_id as string | null | undefined)} />
+                <PedigreeRow label="Mãe" value={damAnimalId ?? femaleRow?.dam_id ?? (female.dam_id as string | null | undefined)} />
               </div>
 
               {/* Notes */}

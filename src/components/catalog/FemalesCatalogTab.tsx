@@ -68,6 +68,11 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
     new Map(femaleRows.map(r => [r.animal_id, r])),
   [femaleRows]);
 
+  // Mapa rápido: db id → FemaleRow (para buscar o ID da mãe)
+  const dbIdMap = useMemo(() =>
+    new Map(femaleRows.map(r => [r.id, r])),
+  [femaleRows]);
+
   // Detectar fêmeas "custom" (adicionadas manualmente)
   const customIds = useMemo(() => new Set(femaleRows.map(r => r.animal_id)), [femaleRows]);
 
@@ -369,7 +374,7 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
                             <span>Nascimento: <b>{new Date(row.bdate).toLocaleDateString('pt-BR')}</b></span>
                           )}
                           {row?.dam_id && (
-                            <span>Mãe: <b>{row.dam_id}</b></span>
+                            <span>Mãe: <b>{dbIdMap.get(row.dam_id)?.animal_id || row.dam_id}</b></span>
                           )}
                           {(row?.notes || f.notes) && (
                             <div className="col-span-3 md:col-span-6 mt-2 pt-2 border-t border-gray-100 flex items-start gap-1.5 text-gray-400">
@@ -425,6 +430,7 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
       <FemaleProfileModal
         female={profileFemale}
         femaleRow={profileFemale ? rowMap.get(profileFemale.id) : undefined}
+        damAnimalId={profileFemale ? dbIdMap.get(rowMap.get(profileFemale.id)?.dam_id ?? '')?.animal_id : undefined}
         onClose={() => setProfileFemale(null)}
         onGoToMatching={() => {
           if (profileFemale) {

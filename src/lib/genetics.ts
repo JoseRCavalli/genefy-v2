@@ -491,6 +491,80 @@ export function estimateCowPtas(
     }
   }
 
+  // TPI uses gtpi for bulls and tpi for females
+  if (enriched.tpi == null) {
+    let val = 0, weight = 0;
+    if (dam && dam.tpi != null) { val += dam.tpi * 0.50; weight += 0.50; }
+    else {
+      if (mgs && mgs.gtpi != null) { val += mgs.gtpi * 0.25; weight += 0.25; }
+      if (mmgs && mmgs.gtpi != null) { val += mmgs.gtpi * 0.125; weight += 0.125; }
+    }
+    if (sire && sire.gtpi != null) { val += sire.gtpi * 0.50; weight += 0.50; }
+    if (weight > 0) {
+      enriched.tpi = parseFloat(val.toFixed(2));
+      enriched._est_tpi = true;
+    }
+  }
+
+  if (enriched.ptat == null) {
+    let val = 0, weight = 0;
+    if (dam && dam.ptat != null) { val += dam.ptat * 0.50; weight += 0.50; }
+    else {
+      if (mgs && mgs.ptat != null) { val += mgs.ptat * 0.25; weight += 0.25; }
+      if (mmgs && mmgs.ptat != null) { val += mmgs.ptat * 0.125; weight += 0.125; }
+    }
+    if (sire && sire.ptat != null) { val += sire.ptat * 0.50; weight += 0.50; }
+    if (weight > 0) {
+      enriched.ptat = parseFloat(val.toFixed(2));
+      enriched._est_ptat = true;
+    }
+  }
+
+  // Livability uses cow_livability for bulls and livability for females
+  if (enriched.livability == null) {
+    let val = 0, weight = 0;
+    if (dam && dam.livability != null) { val += dam.livability * 0.50; weight += 0.50; }
+    else {
+      if (mgs && mgs.cow_livability != null) { val += mgs.cow_livability * 0.25; weight += 0.25; }
+      if (mmgs && mmgs.cow_livability != null) { val += mmgs.cow_livability * 0.125; weight += 0.125; }
+    }
+    if (sire && sire.cow_livability != null) { val += sire.cow_livability * 0.50; weight += 0.50; }
+    if (weight > 0) {
+      enriched.livability = parseFloat(val.toFixed(2));
+      enriched._est_livability = true;
+    }
+  }
+
+  // Feed Efficiency uses feed_saved for bulls and feed_efficiency for females
+  if (enriched.feed_efficiency == null) {
+    let val = 0, weight = 0;
+    if (dam && dam.feed_efficiency != null) { val += dam.feed_efficiency * 0.50; weight += 0.50; }
+    else {
+      if (mgs && mgs.feed_saved != null) { val += mgs.feed_saved * 0.25; weight += 0.25; }
+      if (mmgs && mmgs.feed_saved != null) { val += mmgs.feed_saved * 0.125; weight += 0.125; }
+    }
+    if (sire && sire.feed_saved != null) { val += sire.feed_saved * 0.50; weight += 0.50; }
+    if (weight > 0) {
+      enriched.feed_efficiency = parseFloat(val.toFixed(2));
+      enriched._est_feed_efficiency = true;
+    }
+  }
+
+  // Calving ease uses sire_calving_ease for both
+  if (enriched.sire_calving_ease == null) {
+    let val = 0, weight = 0;
+    if (dam && dam.sire_calving_ease != null) { val += dam.sire_calving_ease * 0.50; weight += 0.50; }
+    else {
+      if (mgs && mgs.sire_calving_ease != null) { val += mgs.sire_calving_ease * 0.25; weight += 0.25; }
+      if (mmgs && mmgs.sire_calving_ease != null) { val += mmgs.sire_calving_ease * 0.125; weight += 0.125; }
+    }
+    if (sire && sire.sire_calving_ease != null) { val += sire.sire_calving_ease * 0.50; weight += 0.50; }
+    if (weight > 0) {
+      enriched.sire_calving_ease = parseFloat(val.toFixed(2));
+      enriched._est_sire_calving_ease = true;
+    }
+  }
+
   if (enriched.ginb == null) {
     enriched.ginb = parseFloat(estimateGinb(female, allBulls, allFemales).toFixed(2));
   }

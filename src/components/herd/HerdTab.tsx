@@ -624,13 +624,8 @@ export function HerdTab({
       if (!window.confirm(`Touro "${form.sire}" não está no catálogo. Cadastrar assim mesmo?`)) return;
     }
 
-    setSaving(true);
-    const err = await onUpsert(farmId, {
-      animal_id: idTrimmed,
-      name: form.name || null,
-      breed: form.breed || 'HO',
-      lact: parseInt(form.lact) || 0,
-      bdate: form.bdate || null,
+    const baseFemale: Female = {
+      id: idTrimmed,
       sire_naab: sireData?.code ?? (form.sire || null),
       mgs_naab: form.mgs || null,
       mmgs_naab: form.mmgs || null,
@@ -638,7 +633,42 @@ export function HerdTab({
       ginb: form.ginb ? parseFloat(form.ginb) : null,
       milk: form.milk_kg ? Math.round(parseFloat(form.milk_kg) * 2.205) : null,
       genomic: form.genomic,
+    };
+    
+    // Calcula automaticamente o pedigree (Parent Average) para preencher índices se disponíveis
+    const enriched = estimateCowPtas(baseFemale, allBulls, females);
+
+    setSaving(true);
+    const err = await onUpsert(farmId, {
+      animal_id: idTrimmed,
+      name: form.name || null,
+      breed: form.breed || 'HO',
+      lact: parseInt(form.lact) || 0,
+      bdate: form.bdate || null,
+      sire_naab: enriched.sire_naab,
+      mgs_naab: enriched.mgs_naab,
+      mmgs_naab: enriched.mmgs_naab,
+      dam_id: enriched.dam_id,
+      genomic: enriched.genomic,
       is_primiparous: (parseInt(form.lact) || 0) === 0,
+      
+      // Salva os índices calculados
+      ginb: form.ginb ? parseFloat(form.ginb) : (enriched.ginb ?? null),
+      milk: form.milk_kg ? Math.round(parseFloat(form.milk_kg) * 2.205) : (enriched.milk ?? null),
+      protein: enriched.protein ?? null,
+      fat: enriched.fat ?? null,
+      productive_life: enriched.productive_life ?? null,
+      dpr: enriched.dpr ?? null,
+      fertility_index: enriched.fertility_index ?? null,
+      udc: enriched.udc ?? null,
+      flc: enriched.flc ?? null,
+      ptat: enriched.ptat ?? null,
+      net_merit: enriched.net_merit ?? null,
+      tpi: enriched.tpi ?? null,
+      scs: enriched.scs ?? null,
+      livability: enriched.livability ?? null,
+      feed_efficiency: enriched.feed_efficiency ?? null,
+      sire_calving_ease: enriched.sire_calving_ease ?? null,
     });
     setSaving(false);
     
