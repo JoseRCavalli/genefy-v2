@@ -437,9 +437,12 @@ export function HerdTab({
       const cats = row.categories ?? [];
       const visibleCats = cats.filter(c => c !== 'dead');
       
-      if (cats.includes('dead')) res.dead++;
-      
-      if (visibleCats.length === 0) {
+      if (cats.includes('dead')) {
+        res.dead++;
+        // Don't count dead cows in 'none' or other categories for the summary if we want to isolate them?
+        // Wait, if she is 'sexed_premium' and 'dead', maybe she should still count as 'sexed_premium'?
+        // Actually, let's keep it simple: if she's dead, she ONLY counts as dead.
+      } else if (visibleCats.length === 0) {
         res.none++;
       } else {
         visibleCats.forEach(c => {
@@ -457,9 +460,20 @@ export function HerdTab({
     return customFemaleRows.filter(row => {
       // 1. Filtro de categoria
       const cats = row.categories ?? [];
-      const matchesCategory = cats.length === 0
-        ? catFilter.includes('none')
-        : cats.some(c => catFilter.includes(c));
+      const isDead = cats.includes('dead');
+      const visibleCats = cats.filter(c => c !== 'dead');
+      
+      let matchesCategory = false;
+      
+      // If dead, it ONLY matches if 'dead' is in the filter
+      if (isDead) {
+        matchesCategory = catFilter.includes('dead');
+      } else {
+        // If not dead, normal logic
+        matchesCategory = visibleCats.length === 0
+          ? catFilter.includes('none')
+          : visibleCats.some(c => catFilter.includes(c));
+      }
 
       if (!matchesCategory) return false;
 
