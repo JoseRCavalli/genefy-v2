@@ -1149,7 +1149,11 @@ export function HerdTab({
                 { id: 'none', label: 'Sem Categoria', count: counts.none, color: 'text-gray-500 border-gray-100 bg-gray-50/30', dotColor: 'bg-gray-400' },
                 { id: 'dead', label: 'Mortas', count: counts.dead, color: 'text-gray-800 border-gray-300 bg-gray-100/50', dotColor: 'bg-black' },
               ].map(card => (
-                <div key={card.id} className={`p-3 border rounded-xl flex flex-col justify-between ${card.color}`}>
+                <div 
+                  key={card.id} 
+                  onClick={() => setCatFilter([card.id])}
+                  className={`p-3 border rounded-xl flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow ${card.color}`}
+                >
                   <span className="text-[10px] uppercase font-bold tracking-wider opacity-80 flex items-center gap-1.5">
                     <span className={`w-1.5 h-1.5 rounded-full ${card.dotColor}`} />
                     {card.label}
