@@ -311,6 +311,11 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
                             <Star size={11} className="text-amber-500" />
                           </span>
                         )}
+                        {f.categories?.includes('dead') && (
+                          <span title="Morta">
+                            <span className="text-[10px] bg-black text-white px-1 py-0.5 rounded font-bold">MORTA</span>
+                          </span>
+                        )}
                       </div>
                     </td>
 
@@ -343,12 +348,22 @@ export function FemalesCatalogTab({ females, femaleRows, onSelectFemale, onTabCh
                           <BarChart2 size={10} />
                           Índices
                         </button>
-                        <button
-                          onClick={() => { onSelectFemale(f); onTabChange('matching'); }}
-                          className="px-2 py-0.5 text-[11px] bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
-                        >
-                          Matching →
-                        </button>
+                        {f.categories?.includes('dead') ? (
+                          <button
+                            disabled
+                            className="px-2 py-0.5 text-[11px] bg-gray-300 text-gray-500 rounded cursor-not-allowed whitespace-nowrap"
+                            title="Animal morto não pode ser acasalado"
+                          >
+                            Matching →
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => { onSelectFemale(f); onTabChange('matching'); }}
+                            className="px-2 py-0.5 text-[11px] bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
+                          >
+                            Matching →
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

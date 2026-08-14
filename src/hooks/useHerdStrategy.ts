@@ -181,8 +181,9 @@ export function useHerdStrategy(
       };
     }
 
-    // 1. Calcular composite_merit_score para todas as fêmeas e ordenar (ranking)
-    const scoredFemales = females.map((female) => {
+    // 1. Calcular composite_merit_score para todas as fêmeas vivas e ordenar (ranking)
+    const aliveFemales = females.filter(f => !f.categories?.includes('dead'));
+    const scoredFemales = aliveFemales.map((female) => {
       const dbFemaleRow = femaleRows.find((fr) => fr.animal_id === female.id);
       const score = calculateFemaleMeritScore(female, weights);
       const failedCount = dbFemaleRow ? failedMatingsCount[dbFemaleRow.id] || 0 : 0;

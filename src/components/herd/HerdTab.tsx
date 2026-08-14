@@ -234,6 +234,7 @@ function FemaleCard({ female, row, allBulls, onViewMatching, onRemove, onUpdateC
               { id: 'sexed_budget', label: 'Sexado Econômico', dotColor: 'bg-blue-500', activeCls: 'bg-blue-100 text-blue-800 border-blue-300 font-semibold', inactiveCls: 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200' },
               { id: 'conventional', label: 'Convencional', dotColor: 'bg-amber-500', activeCls: 'bg-amber-100 text-amber-800 border-amber-300 font-semibold', inactiveCls: 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200' },
               { id: 'beef', label: 'Corte', dotColor: 'bg-red-500', activeCls: 'bg-red-100 text-red-800 border-red-300 font-semibold', inactiveCls: 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200' },
+              { id: 'dead', label: 'Morta', dotColor: 'bg-black', activeCls: 'bg-gray-800 text-white border-gray-800 font-semibold', inactiveCls: 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-200 hover:text-gray-800 hover:border-gray-300' },
             ].map(c => {
               const currentCats = female.categories ?? [];
               const isActive = currentCats.includes(c.id);
@@ -431,13 +432,17 @@ export function HerdTab({
 
   // Contagem de fêmeas customizadas por categoria
   const counts = useMemo(() => {
-    const res = { sexed_premium: 0, sexed_budget: 0, conventional: 0, beef: 0, none: 0 };
+    const res = { sexed_premium: 0, sexed_budget: 0, conventional: 0, beef: 0, dead: 0, none: 0 };
     customFemaleRows.forEach(row => {
       const cats = row.categories ?? [];
-      if (cats.length === 0) {
+      const visibleCats = cats.filter(c => c !== 'dead');
+      
+      if (cats.includes('dead')) res.dead++;
+      
+      if (visibleCats.length === 0) {
         res.none++;
       } else {
-        cats.forEach(c => {
+        visibleCats.forEach(c => {
           if (c in res) {
             res[c as keyof typeof res]++;
           }
@@ -1128,6 +1133,7 @@ export function HerdTab({
                 { id: 'conventional', label: 'Convencional', count: counts.conventional, color: 'text-amber-700 border-amber-100 bg-amber-50/30', dotColor: 'bg-amber-500' },
                 { id: 'beef', label: 'Corte', count: counts.beef, color: 'text-red-700 border-red-100 bg-red-50/30', dotColor: 'bg-red-500' },
                 { id: 'none', label: 'Sem Categoria', count: counts.none, color: 'text-gray-500 border-gray-100 bg-gray-50/30', dotColor: 'bg-gray-400' },
+                { id: 'dead', label: 'Mortas', count: counts.dead, color: 'text-gray-800 border-gray-300 bg-gray-100/50', dotColor: 'bg-black' },
               ].map(card => (
                 <div key={card.id} className={`p-3 border rounded-xl flex flex-col justify-between ${card.color}`}>
                   <span className="text-[10px] uppercase font-bold tracking-wider opacity-80 flex items-center gap-1.5">
@@ -1153,6 +1159,7 @@ export function HerdTab({
                       { id: 'conventional', label: 'Convencional', count: counts.conventional, dotColor: 'bg-amber-500', activeCls: 'bg-amber-500 text-white border-[#d97706]', inactiveCls: 'bg-white text-amber-700 border-amber-200 hover:bg-amber-50' },
                       { id: 'beef', label: 'Corte', count: counts.beef, dotColor: 'bg-red-500', activeCls: 'bg-red-600 text-white border-red-600', inactiveCls: 'bg-white text-red-700 border-red-200 hover:bg-red-50' },
                       { id: 'none', label: 'Sem categoria', count: counts.none, dotColor: 'bg-gray-400', activeCls: 'bg-gray-600 text-white border-gray-600', inactiveCls: 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50' },
+                      { id: 'dead', label: 'Mortas', count: counts.dead, dotColor: 'bg-black', activeCls: 'bg-gray-800 text-white border-gray-800', inactiveCls: 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100' },
                     ].map(f => {
                       const isSelected = catFilter.includes(f.id);
                       return (
@@ -1197,7 +1204,7 @@ export function HerdTab({
 
                   <button
                     onClick={() => {
-                      setCatFilter(['sexed_premium', 'sexed_budget', 'conventional', 'beef', 'none']);
+                      setCatFilter(['sexed_premium', 'sexed_budget', 'conventional', 'beef', 'none', 'dead']);
                       setLactFilter(['0', '1', '2', '3+']);
                       setGinbFilter('all');
                       setSearchQuery('');
